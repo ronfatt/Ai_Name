@@ -158,7 +158,7 @@ function getPosition(index: number): string {
   return "名字第三字";
 }
 
-function fallbackCharacter(char: string, seed: number): Omit<CharacterAnalysis, "position"> {
+function fallbackCharacter(char: string, seed: number, position: string): Omit<CharacterAnalysis, "position"> {
   const element = pick(elements, seed);
   const strokes = 8 + (seed % 11);
   const tone: Record<ElementName, string> = {
@@ -168,24 +168,81 @@ function fallbackCharacter(char: string, seed: number): Omit<CharacterAnalysis, 
     金: "带有原则、判断与自我要求的气息。",
     水: "带有智慧、流动与情绪感受力的气息。"
   };
+  const personalityByElement: Record<ElementName, string[]> = {
+    木: [
+      "这个字让性格里多了一份想成长、想突破的劲，遇到问题时不太愿意一直停在原地。",
+      "它会让人比较重视学习和方向感，心里有目标时，行动会比别人想象中更坚持。",
+      "这个字的木气带一点向外舒展的力量，适合靠经验、人脉和长期经营慢慢打开局面。"
+    ],
+    火: [
+      "这个字会加强表达和行动的欲望，心里一旦有想法，就不太喜欢被拖太久。",
+      "它让性格里多了一点被看见的需要，适合在合适的舞台上发挥，但急的时候要留意语气。",
+      "这个字的火气比较像推动力，能带来热情，也会让情绪反应比表面看起来更快。"
+    ],
+    土: [
+      "这个字让你比较重视稳定和承诺，很多时候会先考虑责任，再考虑自己的轻松。",
+      "它带有承接压力的气场，容易让人觉得你可靠，但也可能让你习惯把事情扛下来。",
+      "这个字的土气偏稳，做事不一定快，却比较在意结果是否扎实、关系是否长久。"
+    ],
+    金: [
+      "这个字让判断力和原则感比较明显，不喜欢太含糊的关系和没有标准的安排。",
+      "它会让性格里多一点自我要求，遇到不合理的事情，心里其实很难完全放下。",
+      "这个字的金气偏收敛，表面可以冷静，但内在对对错、承诺和边界会看得比较清楚。"
+    ],
+    水: [
+      "这个字让感受力更细，很多事你不是没看见，而是会先放在心里慢慢消化。",
+      "它会让人比较会观察情绪和气氛，适合靠智慧、沟通和弹性去处理复杂关系。",
+      "这个字的水气带流动感，想法不死板，但心里也容易因为想太多而迟迟不说。"
+    ]
+  };
+  const stageByPosition: Record<string, string[]> = {
+    姓氏: [
+      "放在姓氏位置时，它比较像家庭根基和早年环境的底色，会影响你怎么看待安全感与归属感。",
+      "作为姓氏，它先代表原生家庭给你的气场，容易反映早年被期待、被影响或被牵动的部分。",
+      "在姓氏位置，这个字更多看根基，不是单看个人选择，而是看你从家庭系统里带出来的习惯。"
+    ],
+    名字第一字: [
+      "放在名字第一字时，它会影响你对外做事的方式，尤其是事业方向、行动节奏和别人对你的第一印象。",
+      "作为名字第一字，它比较像你走出去面对世界时的能量，关系到表现力、目标感和贵人互动。",
+      "在名字第一字的位置，它会先影响青年到中年前期的推进方式，看你如何争取机会和建立位置。"
+    ],
+    名字第二字: [
+      "放在名字第二字时，它更靠近内在心性和后期运势，常常反映你真正放不下、也真正想完成的部分。",
+      "作为名字第二字，它会影响关系里的细腻度与中后期累积，越到后面越能看出这个字的力量。",
+      "在名字第二字的位置，它比较像人生后劲，提醒你不要只看眼前顺不顺，也要看长期是否能沉淀成果。"
+    ],
+    名字第三字: [
+      "放在名字第三字时，它会加强后期延伸的能量，比较看晚些阶段的选择、关系和心境变化。",
+      "作为名字第三字，它常常代表尾劲和收成，提醒你留意长期关系与后期方向是否稳定。",
+      "在名字第三字的位置，它比较像人生后段的回响，需要结合前面两个字一起看整体节奏。"
+    ]
+  };
+  const strokeTone =
+    strokes <= 10
+      ? "笔画偏轻，能量来得较快，优点是反应灵活，提醒是不要太快下判断。"
+      : strokes <= 14
+        ? "笔画中等，能量较容易平衡，适合靠稳定选择慢慢累积。"
+        : "笔画偏重，能量承载感较强，往往代表责任、压力或后期成果都比较明显。";
+  const positionSeed = stableHash(`${char}-${position}-${strokes}`);
 
   return {
     char,
     element,
     strokes,
-    meaning: tone[element],
-    personalityImpact: "这个字显示你不是完全外放的人，很多判断会先在心里沉淀，再决定要不要表达。",
-    lifeStageImpact: "它比较像一种慢慢累积后再打开的能量，需要结合完整姓名与生肖进一步确认。"
+    meaning: `${tone[element]}${strokeTone}`,
+    personalityImpact: pick(personalityByElement[element], positionSeed),
+    lifeStageImpact: pick(stageByPosition[position] ?? stageByPosition.名字第二字, positionSeed + seed)
   };
 }
 
 function analyzeCharacters(name: string): CharacterAnalysis[] {
   return Array.from(name).map((char, index) => {
     const seed = stableHash(`${char}-${index}`);
-    const base = mockCharacterDb[char] ?? fallbackCharacter(char, seed);
+    const position = getPosition(index);
+    const base = mockCharacterDb[char] ?? fallbackCharacter(char, seed, position);
     return {
       ...base,
-      position: getPosition(index)
+      position
     };
   });
 }
