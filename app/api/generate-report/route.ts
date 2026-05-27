@@ -174,7 +174,7 @@ async function generateAiReport(localAnalysis: AnalysisResult): Promise<AiReport
           schema: aiReportSchema
         }
       },
-      max_output_tokens: 2600
+      max_output_tokens: 5200
     })
   });
 
@@ -202,6 +202,7 @@ function buildUserPrompt(localAnalysis: AnalysisResult): string {
     "输出必须是 JSON，字段必须符合 schema。",
     "安全要求：不恐吓、不断言灾祸、不说具体死亡、疾病、车祸、破产、离婚等严重事件、不说“你一定”、不给完整改名方案。",
     "转化要求：每个家庭、事业、爱情板块结尾都自然提醒可通过 WhatsApp 让老师进一步确认，但语气要温和。",
+    "长度要求：每个段落保持 1 到 3 句话，温和但不要冗长，必须输出完整可解析 JSON。",
     "",
     "用户输入：",
     JSON.stringify(localAnalysis.userInput, null, 2),
