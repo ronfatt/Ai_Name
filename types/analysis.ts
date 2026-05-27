@@ -31,6 +31,17 @@ export interface SectionReport {
   reminder: string;
 }
 
+export interface ZodiacNameAnalysis {
+  zodiacElement: string;
+  nameDominantElement: ElementName;
+  relationLabel: string;
+  relationTone: string;
+  favorableRoots: string[];
+  matchedRoots: string[];
+  cautions: string[];
+  summary: string;
+}
+
 export interface OverallAnalysis {
   opening: string;
   strengths: string[];
@@ -46,6 +57,7 @@ export interface AnalysisResult {
   patternName: string;
   overall: OverallAnalysis;
   characters: CharacterAnalysis[];
+  zodiacName: ZodiacNameAnalysis;
   family: SectionReport;
   career: SectionReport;
   love: SectionReport;

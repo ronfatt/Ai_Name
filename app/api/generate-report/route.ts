@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { analyzeName } from "@/lib/nameAnalysis";
-import type { AnalysisResult, NameAnalysisInput, SectionReport } from "@/types/analysis";
+import type { AnalysisResult, NameAnalysisInput, SectionReport, ZodiacNameAnalysis } from "@/types/analysis";
 
 export const runtime = "nodejs";
 
@@ -15,6 +15,7 @@ interface GenerateReportBody {
 
 interface AiReportPatch {
   overall: AnalysisResult["overall"];
+  zodiacName: ZodiacNameAnalysis;
   family: SectionReport;
   career: SectionReport;
   love: SectionReport;
@@ -48,10 +49,26 @@ const sectionSchema = {
   }
 };
 
+const zodiacNameSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["zodiacElement", "nameDominantElement", "relationLabel", "relationTone", "favorableRoots", "matchedRoots", "cautions", "summary"],
+  properties: {
+    zodiacElement: { type: "string" },
+    nameDominantElement: { type: "string", enum: ["木", "火", "土", "金", "水"] },
+    relationLabel: { type: "string" },
+    relationTone: stringField,
+    favorableRoots: stringListField,
+    matchedRoots: stringListField,
+    cautions: stringListField,
+    summary: stringField
+  }
+};
+
 const aiReportSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["overall", "family", "career", "love", "pastTrace", "summary", "deeperQuestions"],
+  required: ["overall", "zodiacName", "family", "career", "love", "pastTrace", "summary", "deeperQuestions"],
   properties: {
     overall: {
       type: "object",
@@ -64,6 +81,7 @@ const aiReportSchema = {
         confirmations: stringListField
       }
     },
+    zodiacName: zodiacNameSchema,
     family: sectionSchema,
     career: sectionSchema,
     love: sectionSchema,
@@ -180,7 +198,7 @@ async function generateAiReport(localAnalysis: AnalysisResult): Promise<AiReport
 
 function buildUserPrompt(localAnalysis: AnalysisResult): string {
   return [
-    "请只根据下面本地规则引擎输出润色报告，不要创造新的命理规则，不要改变分数、格局、五行、笔画、姓名拆字结果。",
+    "请只根据下面本地规则引擎输出润色报告，不要创造新的命理规则，不要改变分数、格局、五行、笔画、姓名拆字结果、生肖五行关系。",
     "输出必须是 JSON，字段必须符合 schema。",
     "安全要求：不恐吓、不断言灾祸、不说具体死亡、疾病、车祸、破产、离婚等严重事件、不说“你一定”、不给完整改名方案。",
     "转化要求：每个家庭、事业、爱情板块结尾都自然提醒可通过 WhatsApp 让老师进一步确认，但语气要温和。",
@@ -195,6 +213,7 @@ function buildUserPrompt(localAnalysis: AnalysisResult): string {
         patternName: localAnalysis.patternName,
         overall: localAnalysis.overall,
         characters: localAnalysis.characters,
+        zodiacName: localAnalysis.zodiacName,
         family: localAnalysis.family,
         career: localAnalysis.career,
         love: localAnalysis.love,
@@ -212,6 +231,11 @@ function mergeAiPatch(localAnalysis: AnalysisResult, patch: AiReportPatch): Anal
   return {
     ...localAnalysis,
     overall: patch.overall,
+    zodiacName: {
+      ...patch.zodiacName,
+      nameDominantElement: localAnalysis.zodiacName.nameDominantElement,
+      relationLabel: localAnalysis.zodiacName.relationLabel
+    },
     family: {
       ...patch.family,
       title: "家庭分析"
@@ -262,6 +286,7 @@ function isUsableLocalAnalysis(value: AnalysisResult): boolean {
     value.userInput?.zodiac &&
     value.score &&
     value.patternName &&
+    value.zodiacName &&
     value.family &&
     value.career &&
     value.love &&
@@ -273,12 +298,27 @@ function isValidAiPatch(value: AiReportPatch): boolean {
   return Boolean(
     value &&
     isOverall(value.overall) &&
+    isZodiacName(value.zodiacName) &&
     isSection(value.family) &&
     isSection(value.career) &&
     isSection(value.love) &&
     isLongText(value.pastTrace) &&
     isLongText(value.summary) &&
     isStringList(value.deeperQuestions)
+  );
+}
+
+function isZodiacName(value: ZodiacNameAnalysis): boolean {
+  return Boolean(
+    value &&
+    typeof value.zodiacElement === "string" &&
+    typeof value.nameDominantElement === "string" &&
+    typeof value.relationLabel === "string" &&
+    isLongText(value.relationTone) &&
+    Array.isArray(value.favorableRoots) &&
+    Array.isArray(value.matchedRoots) &&
+    isStringList(value.cautions) &&
+    isLongText(value.summary)
   );
 }
 

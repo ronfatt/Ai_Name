@@ -4,7 +4,8 @@ import type {
   ElementName,
   NameAnalysisInput,
   SectionReport,
-  WhatsappSection
+  WhatsappSection,
+  ZodiacNameAnalysis
 } from "@/types/analysis";
 
 const elements: ElementName[] = ["木", "火", "土", "金", "水"];
@@ -22,6 +23,37 @@ const zodiacElementPreference: Record<string, ElementName[]> = {
   鸡: ["金", "土"],
   狗: ["土", "火"],
   猪: ["水", "木"]
+};
+
+const zodiacMeta: Record<string, { branch: string; element: ElementName; nature: string; favorableRoots: string[] }> = {
+  鼠: { branch: "子", element: "水", nature: "机敏、观察力强，重视安全感和流动空间", favorableRoots: ["子", "水", "氵", "冫", "北", "冬", "一", "口", "宀", "金"] },
+  牛: { branch: "丑", element: "土", nature: "稳重、耐力强，适合踏实累积与被信任的位置", favorableRoots: ["丑", "牜", "生", "力", "工", "田", "禾", "米", "宀", "艹"] },
+  虎: { branch: "寅", element: "木", nature: "有胆识与开创感，适合山林舒展和被尊重的空间", favorableRoots: ["寅", "虍", "山", "丘", "林", "木", "心", "月", "王", "衣"] },
+  兔: { branch: "卯", element: "木", nature: "细腻、重情感与安全感，适合温和成长的环境", favorableRoots: ["卯", "木", "林", "青", "东", "春", "月", "口", "田", "艹"] },
+  龙: { branch: "辰", element: "土", nature: "格局感强，重视舞台、气势与被看见的位置", favorableRoots: ["辰", "雨", "云", "日", "月", "星", "王", "玉", "言", "贝"] },
+  蛇: { branch: "巳", element: "火", nature: "直觉敏锐，适合安静布局、慢慢积蓄能量", favorableRoots: ["巳", "虫", "弓", "之", "辶", "口", "宀", "艹", "木", "火"] },
+  马: { branch: "午", element: "火", nature: "行动力强，适合开阔、速度感和被鼓励的空间", favorableRoots: ["午", "火", "灬", "竹", "南", "红", "艹", "木", "王", "日"] },
+  羊: { branch: "未", element: "土", nature: "温和、有审美与照顾心，适合稳定和被善待的环境", favorableRoots: ["未", "羊", "美", "朱", "幸", "孝", "艹", "田", "禾", "米"] },
+  猴: { branch: "申", element: "金", nature: "灵活、反应快，适合变化中找机会和贵人互动", favorableRoots: ["申", "侯", "示", "礻", "福", "礼", "九", "口", "宀", "水"] },
+  鸡: { branch: "酉", element: "金", nature: "重秩序、表达与被认可，适合有规矩也有舞台的位置", favorableRoots: ["酉", "金", "西", "白", "羽", "鸟", "飞", "口", "田", "米"] },
+  狗: { branch: "戌", element: "土", nature: "忠诚、有守护感，适合责任清楚和被信任的关系", favorableRoots: ["戌", "犬", "犭", "忠", "心", "月", "宀", "人", "艹", "日"] },
+  猪: { branch: "亥", element: "水", nature: "重感受、福气与包容，适合安稳、被接纳的生活节奏", favorableRoots: ["亥", "豕", "象", "众", "水", "氵", "冫", "木", "口", "田"] }
+};
+
+const generates: Record<ElementName, ElementName> = {
+  木: "火",
+  火: "土",
+  土: "金",
+  金: "水",
+  水: "木"
+};
+
+const controls: Record<ElementName, ElementName> = {
+  木: "土",
+  土: "水",
+  水: "火",
+  火: "金",
+  金: "木"
 };
 
 const mockCharacterDb: Record<string, Omit<CharacterAnalysis, "position">> = {
@@ -165,17 +197,64 @@ function getElementCounts(chars: CharacterAnalysis[]): Record<ElementName, numbe
   }, {} as Record<ElementName, number>);
 }
 
+function getDominantElement(chars: CharacterAnalysis[]): ElementName {
+  const counts = getElementCounts(chars);
+  return elements.reduce((top, element) => (counts[element] > counts[top] ? element : top), "木");
+}
+
+function relationBetweenNameAndZodiac(nameElement: ElementName, zodiacElement: ElementName): { label: string; tone: string; bonus: number } {
+  if (generates[nameElement] === zodiacElement) {
+    return {
+      label: "姓名生生肖",
+      tone: "名字主气有扶生肖的意思，比较像外在名字能量在支持本人气场，做事容易有顺势累积的空间。",
+      bonus: 5
+    };
+  }
+
+  if (controls[zodiacElement] === nameElement) {
+    return {
+      label: "生肖克姓名",
+      tone: "生肖能量能驾驭名字主气，比较像本人愿意付出与承担，但也要留意别把责任都压在自己身上。",
+      bonus: 2
+    };
+  }
+
+  if (generates[zodiacElement] === nameElement) {
+    return {
+      label: "生肖生姓名",
+      tone: "生肖去生名字，代表本人容易把力气投注在外在表现、责任或关系里，有韧性，但有时会比较耗心力。",
+      bonus: 0
+    };
+  }
+
+  if (controls[nameElement] === zodiacElement) {
+    return {
+      label: "姓名克生肖",
+      tone: "名字主气对生肖有牵制感，比较像心里有方向，却容易遇到节奏被卡、表达不顺或机会来得慢的感觉，需要进一步确认。",
+      bonus: -4
+    };
+  }
+
+  return {
+    label: "同气相扶",
+    tone: "名字主气与生肖同类，优点是个性和方向比较集中，提醒是不要过度固执在同一种做法里。",
+    bonus: 1
+  };
+}
+
 function buildScore(input: NameAnalysisInput, chars: CharacterAnalysis[]): number {
   const seed = stableHash(`${input.name}-${input.zodiac}-${input.focus}-${input.scriptType}`);
   const preferences = zodiacElementPreference[input.zodiac] ?? [];
   const matchBonus = chars.filter((char) => preferences.includes(char.element)).length * 3;
   const balanceBonus = new Set(chars.map((char) => char.element)).size * 2;
-  return Math.min(88, Math.max(72, 72 + (seed % 11) + matchBonus + balanceBonus));
+  const dominant = getDominantElement(chars);
+  const zodiacElement = zodiacMeta[input.zodiac]?.element ?? "土";
+  const relationBonus = relationBetweenNameAndZodiac(dominant, zodiacElement).bonus;
+  return Math.min(88, Math.max(72, 72 + (seed % 11) + matchBonus + balanceBonus + relationBonus));
 }
 
 function getPatternName(chars: CharacterAnalysis[], score: number): string {
-  const counts = getElementCounts(chars);
-  const dominant = elements.reduce((top, element) => (counts[element] > counts[top] ? element : top), "木");
+  const dominant = getDominantElement(chars);
 
   if (score >= 84) return "稳中开运型";
   if (dominant === "土") return "责任成长型";
@@ -194,6 +273,32 @@ function elementTone(element: ElementName): string {
     水: "感受力和洞察力细腻，适合在变化中找到自己的节奏"
   };
   return tones[element];
+}
+
+function analyzeZodiacName(input: NameAnalysisInput, characters: CharacterAnalysis[], dominant: ElementName): ZodiacNameAnalysis {
+  const meta = zodiacMeta[input.zodiac] ?? zodiacMeta.龙;
+  const relation = relationBetweenNameAndZodiac(dominant, meta.element);
+  const nameChars = Array.from(input.name);
+  const matchedRoots = meta.favorableRoots.filter((root) => nameChars.some((char) => char === root || char.includes(root)));
+  const elementMatches = characters
+    .filter((char) => zodiacElementPreference[input.zodiac]?.includes(char.element))
+    .map((char) => `${char.char}字五行${char.element}`);
+  const matched = Array.from(new Set([...matchedRoots, ...elementMatches])).slice(0, 4);
+
+  return {
+    zodiacElement: `${input.zodiac}属${meta.branch}，主气为${meta.element}`,
+    nameDominantElement: dominant,
+    relationLabel: relation.label,
+    relationTone: relation.tone,
+    favorableRoots: meta.favorableRoots.slice(0, 8),
+    matchedRoots: matched.length > 0 ? matched : ["暂未见明显生肖喜用字根"],
+    cautions: [
+      "生肖姓名学只看年支与姓名结构，不能单凭这一项判断完整命运。",
+      relation.bonus < 0 ? "名字主气与生肖之间有牵制感，适合进一步确认是否影响事业节奏或内在压力。" : "即使关系偏顺，也要看名字每个字的位置、笔画与个人现实处境。",
+      "若要判断是否适合继续使用，还需要结合出生资料与老师进一步细看。"
+    ],
+    summary: `以生肖姓名学角度看，${input.zodiac}的气质偏向${meta.nature}。你的姓名主气偏${dominant}，与生肖形成「${relation.label}」的关系。这里先当作初步参考：它可以帮助我们看名字和生肖之间是否顺气，也能提醒哪些地方需要老师进一步确认。`
+  };
 }
 
 function makeSectionReport(kind: "家庭" | "事业" | "爱情", dominant: ElementName, input: NameAnalysisInput): SectionReport {
@@ -264,8 +369,7 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
     gender: input.gender || "不透露"
   };
   const characters = analyzeCharacters(normalizedInput.name);
-  const counts = getElementCounts(characters);
-  const dominant = elements.reduce((top, element) => (counts[element] > counts[top] ? element : top), "木");
+  const dominant = getDominantElement(characters);
   const score = buildScore(normalizedInput, characters);
   const patternName = getPatternName(characters, score);
 
@@ -299,6 +403,7 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
       confirmations
     },
     characters,
+    zodiacName: analyzeZodiacName(normalizedInput, characters, dominant),
     family: makeSectionReport("家庭", dominant, normalizedInput),
     career: makeSectionReport("事业", dominant, normalizedInput),
     love: makeSectionReport("爱情", dominant, normalizedInput),

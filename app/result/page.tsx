@@ -11,6 +11,7 @@ import { ScoreCard } from "@/components/ScoreCard";
 import { SectionReportCard } from "@/components/SectionReportCard";
 import { TagBadge } from "@/components/TagBadge";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { analyzeName } from "@/lib/nameAnalysis";
 import type { AnalysisResult } from "@/types/analysis";
 
 const storageKey = "ai-name-analysis:last-result";
@@ -27,7 +28,20 @@ export default function ResultPage() {
     }
 
     try {
-      setResult(JSON.parse(raw) as AnalysisResult);
+      const parsed = JSON.parse(raw) as AnalysisResult;
+      if (!parsed.zodiacName && parsed.userInput?.name && parsed.userInput?.zodiac) {
+        const repaired = {
+          ...parsed,
+          zodiacName: analyzeName({
+            ...parsed.userInput,
+            scriptType: parsed.userInput.scriptType || "traditional"
+          }).zodiacName
+        };
+        window.localStorage.setItem(storageKey, JSON.stringify(repaired));
+        setResult(repaired);
+        return;
+      }
+      setResult(parsed);
     } catch {
       window.localStorage.removeItem(storageKey);
       router.replace("/analysis");
@@ -59,6 +73,21 @@ export default function ResultPage() {
         </ResultCard>
 
         <ScoreCard score={result.score} patternName={result.patternName} />
+
+        <ResultCard title="生肖与名字的配合">
+          <div className="space-y-4 text-sm leading-7 text-warmGray">
+            <div className="flex flex-wrap gap-2">
+              <TagBadge>{result.zodiacName.zodiacElement}</TagBadge>
+              <TagBadge>姓名主气 {result.zodiacName.nameDominantElement}</TagBadge>
+              <TagBadge>{result.zodiacName.relationLabel}</TagBadge>
+            </div>
+            <p>{result.zodiacName.summary}</p>
+            <p><span className="font-semibold text-gold">关系提醒：</span>{result.zodiacName.relationTone}</p>
+            <ListBlock title="可参考的生肖喜用字根" items={result.zodiacName.favorableRoots.slice(0, 3)} />
+            <ListBlock title="本名初步看到的配合点" items={result.zodiacName.matchedRoots.slice(0, 3)} />
+            <ListBlock title="老师温和提醒" items={result.zodiacName.cautions} />
+          </div>
+        </ResultCard>
 
         <ResultCard title="姓名整体气场">
           <div className="space-y-5">
