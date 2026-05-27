@@ -29,13 +29,19 @@ export default function ResultPage() {
 
     try {
       const parsed = JSON.parse(raw) as AnalysisResult;
-      if (!parsed.zodiacName && parsed.userInput?.name && parsed.userInput?.zodiac) {
+      if ((!parsed.zodiacName || !parsed.zodiacName.characterMatches || !parsed.zodiacName.harmonyNotes) && parsed.userInput?.name && parsed.userInput?.zodiac) {
+        const latestZodiacName = analyzeName({
+          ...parsed.userInput,
+          scriptType: parsed.userInput.scriptType || "traditional"
+        }).zodiacName;
         const repaired = {
           ...parsed,
-          zodiacName: analyzeName({
-            ...parsed.userInput,
-            scriptType: parsed.userInput.scriptType || "traditional"
-          }).zodiacName
+          zodiacName: {
+            ...latestZodiacName,
+            ...parsed.zodiacName,
+            characterMatches: parsed.zodiacName?.characterMatches ?? latestZodiacName.characterMatches,
+            harmonyNotes: parsed.zodiacName?.harmonyNotes ?? latestZodiacName.harmonyNotes
+          }
         };
         window.localStorage.setItem(storageKey, JSON.stringify(repaired));
         setResult(repaired);
@@ -83,6 +89,22 @@ export default function ResultPage() {
             </div>
             <p>{result.zodiacName.summary}</p>
             <p><span className="font-semibold text-gold">关系提醒：</span>{result.zodiacName.relationTone}</p>
+            <ListBlock title="六合三合与冲害提醒" items={result.zodiacName.harmonyNotes} />
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-gold">逐字生肖配合</h3>
+              {result.zodiacName.characterMatches.map((item) => (
+                <div key={`${item.char}-${item.position}`} className="rounded-2xl border border-white/12 bg-white/10 px-4 py-3">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <TagBadge>{item.position} {item.char}</TagBadge>
+                    <TagBadge>康熙参考 {item.kangxiStrokes} 画</TagBadge>
+                    <TagBadge>{item.fitLevel}</TagBadge>
+                  </div>
+                  <p><span className="font-semibold text-gold">为什么这样看：</span>{item.reason}</p>
+                  <p className="mt-2"><span className="font-semibold text-gold">会合冲刑：</span>{item.relationshipNote}</p>
+                  <p className="mt-2 text-xs leading-5 text-warmGray">字根参考：{item.detectedRoots.join("、")}；对应生肖：{item.relatedZodiacs.join("、")}</p>
+                </div>
+              ))}
+            </div>
             <ListBlock title="可参考的生肖喜用字根" items={result.zodiacName.favorableRoots.slice(0, 3)} />
             <ListBlock title="本名初步看到的配合点" items={result.zodiacName.matchedRoots.slice(0, 3)} />
             <ListBlock title="老师温和提醒" items={result.zodiacName.cautions} />

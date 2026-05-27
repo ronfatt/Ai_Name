@@ -233,6 +233,7 @@ function mergeAiPatch(localAnalysis: AnalysisResult, patch: AiReportPatch): Anal
     ...localAnalysis,
     overall: patch.overall,
     zodiacName: {
+      ...localAnalysis.zodiacName,
       ...patch.zodiacName,
       nameDominantElement: localAnalysis.zodiacName.nameDominantElement,
       relationLabel: localAnalysis.zodiacName.relationLabel

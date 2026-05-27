@@ -5,6 +5,7 @@ import type {
   NameAnalysisInput,
   SectionReport,
   WhatsappSection,
+  ZodiacCharacterMatch,
   ZodiacNameAnalysis
 } from "@/types/analysis";
 
@@ -54,6 +55,121 @@ const controls: Record<ElementName, ElementName> = {
   水: "火",
   火: "金",
   金: "木"
+};
+
+const sanHeGroups = [
+  ["猴", "鼠", "龙"],
+  ["虎", "马", "狗"],
+  ["猪", "兔", "羊"],
+  ["蛇", "鸡", "牛"]
+];
+
+const liuHePairs = [
+  ["鼠", "牛"],
+  ["虎", "猪"],
+  ["兔", "狗"],
+  ["龙", "鸡"],
+  ["蛇", "猴"],
+  ["马", "羊"]
+];
+
+const clashPairs = [
+  ["鼠", "马"],
+  ["牛", "羊"],
+  ["虎", "猴"],
+  ["兔", "鸡"],
+  ["龙", "狗"],
+  ["蛇", "猪"]
+];
+
+const harmPairs = [
+  ["鼠", "羊"],
+  ["牛", "马"],
+  ["虎", "蛇"],
+  ["兔", "龙"],
+  ["猴", "猪"],
+  ["鸡", "狗"]
+];
+
+const breakPairs = [
+  ["鼠", "鸡"],
+  ["牛", "龙"],
+  ["虎", "猪"],
+  ["兔", "马"],
+  ["蛇", "猴"],
+  ["羊", "狗"]
+];
+
+const punishGroups = [
+  ["鼠", "兔"],
+  ["牛", "羊", "狗"],
+  ["虎", "蛇", "猴"],
+  ["龙"],
+  ["马"],
+  ["鸡"],
+  ["猪"]
+];
+
+const commonCharacterRoots: Record<string, string[]> = {
+  冯: ["冫", "马"],
+  馮: ["馬", "冫"],
+  新: ["斤", "木", "亲"],
+  發: ["弓", "癶"],
+  发: ["弓"],
+  陈: ["阝", "东"],
+  陳: ["阝", "東"],
+  伟: ["人", "韦"],
+  偉: ["人", "韋"],
+  强: ["弓", "虫"],
+  強: ["弓", "虫"],
+  林: ["木"],
+  李: ["木", "子"],
+  王: ["王"],
+  张: ["弓", "长"],
+  張: ["弓", "長"],
+  美: ["羊"],
+  慧: ["心"],
+  欣: ["欠", "斤"]
+};
+
+const rootZodiacMap: Record<string, string> = {
+  子: "鼠",
+  鼠: "鼠",
+  丑: "牛",
+  牛: "牛",
+  牜: "牛",
+  寅: "虎",
+  虎: "虎",
+  虍: "虎",
+  卯: "兔",
+  兔: "兔",
+  辰: "龙",
+  龙: "龙",
+  龍: "龙",
+  巳: "蛇",
+  蛇: "蛇",
+  虫: "蛇",
+  午: "马",
+  马: "马",
+  馬: "马",
+  未: "羊",
+  羊: "羊",
+  申: "猴",
+  猴: "猴",
+  侯: "猴",
+  酉: "鸡",
+  鸡: "鸡",
+  鳥: "鸡",
+  鸟: "鸡",
+  羽: "鸡",
+  戌: "狗",
+  狗: "狗",
+  犬: "狗",
+  犭: "狗",
+  亥: "猪",
+  猪: "猪",
+  豬: "猪",
+  豕: "猪"
 };
 
 const mockCharacterDb: Record<string, Omit<CharacterAnalysis, "position">> = {
@@ -299,6 +415,90 @@ function relationBetweenNameAndZodiac(nameElement: ElementName, zodiacElement: E
   };
 }
 
+function findGroup(zodiac: string, groups: string[][]): string[] {
+  return groups.find((group) => group.includes(zodiac)) ?? [zodiac];
+}
+
+function pairMate(zodiac: string, pairs: string[][]): string | null {
+  const pair = pairs.find((items) => items.includes(zodiac));
+  if (!pair) return null;
+  return pair.find((item) => item !== zodiac) ?? null;
+}
+
+function relationshipBetweenZodiacs(userZodiac: string, relatedZodiac: string): { label: string; tone: string; score: number } {
+  if (relatedZodiac === userZodiac) {
+    return { label: "本生肖字根", tone: "这个字根和本生肖同气，代表名字里有直接呼应自己的部分。", score: 2 };
+  }
+
+  if (findGroup(userZodiac, sanHeGroups).includes(relatedZodiac)) {
+    return { label: "三合", tone: "这个字根落在三合关系里，象征互助、补位和贵人缘的可能。", score: 3 };
+  }
+
+  if (pairMate(userZodiac, liuHePairs) === relatedZodiac) {
+    return { label: "六合", tone: "这个字根落在六合关系里，比较像暗中相合、关系协调的助力。", score: 3 };
+  }
+
+  if (pairMate(userZodiac, clashPairs) === relatedZodiac) {
+    return { label: "相冲", tone: "这个字根和本生肖有冲动感，容易形成方向拉扯，不能直接说坏，但需要细看。", score: -3 };
+  }
+
+  if (pairMate(userZodiac, harmPairs) === relatedZodiac) {
+    return { label: "相害", tone: "这个字根和本生肖有暗耗感，比较像心里别扭、人际误会或情绪消耗，需要进一步确认。", score: -2 };
+  }
+
+  if (pairMate(userZodiac, breakPairs) === relatedZodiac) {
+    return { label: "相破", tone: "这个字根和本生肖有破局感，常见为想法不一致或内部拉扯，适合让老师再细看位置。", score: -2 };
+  }
+
+  if (findGroup(userZodiac, punishGroups).includes(relatedZodiac)) {
+    return { label: "相刑", tone: "这个字根和本生肖有刑的味道，偏向自我压力、规则冲突或相处磨合，不宜下绝对判断。", score: -2 };
+  }
+
+  return { label: "无明显会合冲刑", tone: "这个字根和本生肖没有明显六合三合或冲害破刑，先看五行与位置。", score: 0 };
+}
+
+function zodiacsForRoots(roots: string[]): string[] {
+  const direct = roots.map((root) => rootZodiacMap[root]).filter(Boolean);
+  const inferred = Object.entries(zodiacMeta)
+    .filter(([, meta]) => roots.some((root) => meta.favorableRoots.includes(root)))
+    .map(([zodiac]) => zodiac);
+  return Array.from(new Set([...direct, ...inferred]));
+}
+
+function detectCharacterRoots(char: string): string[] {
+  const direct = commonCharacterRoots[char] ?? [];
+  const inferred = Object.values(zodiacMeta)
+    .flatMap((meta) => meta.favorableRoots)
+    .filter((root) => char === root || char.includes(root));
+  return Array.from(new Set([...direct, ...inferred]));
+}
+
+function analyzeZodiacCharacter(input: NameAnalysisInput, character: CharacterAnalysis): ZodiacCharacterMatch {
+  const roots = detectCharacterRoots(character.char);
+  const relatedZodiacs = zodiacsForRoots(roots);
+  const rootRelations = relatedZodiacs.map((zodiac) => relationshipBetweenZodiacs(input.zodiac, zodiac));
+  const strongestRoot = rootRelations.sort((a, b) => b.score - a.score)[0];
+  const elementRelation = relationBetweenNameAndZodiac(character.element, zodiacMeta[input.zodiac]?.element ?? "土");
+  const rootScore = strongestRoot?.score ?? 0;
+  const totalScore = rootScore + Math.sign(elementRelation.bonus);
+  const fitLevel: ZodiacCharacterMatch["fitLevel"] = totalScore >= 2 ? "较合" : totalScore <= -2 ? "需确认" : "平稳";
+  const rootText = roots.length > 0 ? `字形上可参考「${roots.slice(0, 3).join("、")}」等字根` : "暂时没有看到很明显的生肖字根";
+  const relationText = strongestRoot
+    ? `${strongestRoot.label}：${strongestRoot.tone}`
+    : `${elementRelation.label}：${elementRelation.tone}`;
+
+  return {
+    char: character.char,
+    position: character.position,
+    kangxiStrokes: character.strokes,
+    detectedRoots: roots.length > 0 ? roots : ["未见明显字根"],
+    relatedZodiacs: relatedZodiacs.length > 0 ? relatedZodiacs : ["无明显对应生肖"],
+    fitLevel,
+    reason: `${character.position}「${character.char}」以康熙笔画参考为 ${character.strokes} 画，五行取${character.element}。${rootText}，所以对${input.zodiac}生肖不是只看好坏，而要看它落在姓氏或名字的位置。`,
+    relationshipNote: relationText
+  };
+}
+
 function buildScore(input: NameAnalysisInput, chars: CharacterAnalysis[]): number {
   const seed = stableHash(`${input.name}-${input.zodiac}-${input.focus}-${input.scriptType}`);
   const preferences = zodiacElementPreference[input.zodiac] ?? [];
@@ -341,6 +541,11 @@ function analyzeZodiacName(input: NameAnalysisInput, characters: CharacterAnalys
     .filter((char) => zodiacElementPreference[input.zodiac]?.includes(char.element))
     .map((char) => `${char.char}字五行${char.element}`);
   const matched = Array.from(new Set([...matchedRoots, ...elementMatches])).slice(0, 4);
+  const sanHe = findGroup(input.zodiac, sanHeGroups).filter((item) => item !== input.zodiac);
+  const liuHe = pairMate(input.zodiac, liuHePairs);
+  const clash = pairMate(input.zodiac, clashPairs);
+  const harm = pairMate(input.zodiac, harmPairs);
+  const characterMatches = characters.map((character) => analyzeZodiacCharacter(input, character));
 
   return {
     zodiacElement: `${input.zodiac}属${meta.branch}，主气为${meta.element}`,
@@ -349,6 +554,12 @@ function analyzeZodiacName(input: NameAnalysisInput, characters: CharacterAnalys
     relationTone: relation.tone,
     favorableRoots: meta.favorableRoots.slice(0, 8),
     matchedRoots: matched.length > 0 ? matched : ["暂未见明显生肖喜用字根"],
+    harmonyNotes: [
+      `${input.zodiac}的三合可参考：${sanHe.join("、")}，名字若带到相关字根，会有互助、补位的味道。`,
+      `${input.zodiac}的六合可参考：${liuHe ?? "暂无"}，名字若带到相关字根，常被视为暗合或协调的助力。`,
+      `${input.zodiac}需温和留意：冲为${clash ?? "暂无"}、害为${harm ?? "暂无"}。名字若带到这些字根，不代表一定不好，只是需要看位置与整体结构。`
+    ],
+    characterMatches,
     cautions: [
       "生肖姓名学只看年支与姓名结构，不能单凭这一项判断完整命运。",
       relation.bonus < 0 ? "名字主气与生肖之间有牵制感，适合进一步确认是否影响事业节奏或内在压力。" : "即使关系偏顺，也要看名字每个字的位置、笔画与个人现实处境。",

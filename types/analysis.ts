@@ -38,8 +38,21 @@ export interface ZodiacNameAnalysis {
   relationTone: string;
   favorableRoots: string[];
   matchedRoots: string[];
+  harmonyNotes: string[];
+  characterMatches: ZodiacCharacterMatch[];
   cautions: string[];
   summary: string;
+}
+
+export interface ZodiacCharacterMatch {
+  char: string;
+  position: string;
+  kangxiStrokes: number;
+  detectedRoots: string[];
+  relatedZodiacs: string[];
+  fitLevel: "较合" | "平稳" | "需确认";
+  reason: string;
+  relationshipNote: string;
 }
 
 export interface OverallAnalysis {
