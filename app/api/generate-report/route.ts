@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { analyzeName } from "@/lib/nameAnalysis";
+import { generateAnalysis } from "@/lib/report/generateAnalysis";
 import type { AnalysisResult, NameAnalysisInput, SectionReport, ZodiacNameAnalysis } from "@/types/analysis";
 
 export const runtime = "nodejs";
@@ -138,7 +138,7 @@ function getLocalAnalysis(body: GenerateReportBody): AnalysisResult | null {
   }
 
   if (body.input?.name && body.input.zodiac) {
-    return analyzeName({
+    return generateAnalysis({
       ...body.input,
       scriptType: body.input.scriptType || "traditional"
     });

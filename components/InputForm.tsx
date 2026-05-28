@@ -2,7 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { analyzeName, validateChineseName } from "@/lib/nameAnalysis";
+import { validateChineseName } from "@/lib/nameAnalysis";
+import { generateAnalysis } from "@/lib/report/generateAnalysis";
 import type { Focus, Gender } from "@/types/analysis";
 import { LoadingAnalysis } from "@/components/LoadingAnalysis";
 
@@ -39,10 +40,30 @@ export function InputForm() {
       return;
     }
 
+    if (gender !== "男" && gender !== "女") {
+      setError("紫微斗数排盘需要先选择男或女，老师才能准确判断顺逆与宫位关系。");
+      return;
+    }
+
+    if (!birthDate) {
+      setError("请先选择出生日期，系统才能排出紫微命盘。");
+      return;
+    }
+
+    if (!birthTime) {
+      setError("请先填写出生时间，紫微斗数需要时辰才能定位命宫与迁移宫。");
+      return;
+    }
+
+    if (!birthCity.trim() && !longitude.trim()) {
+      setError("请填写出生城市或出生地经度，系统才能进行真太阳时校正。");
+      return;
+    }
+
     setError("");
     setIsAnalyzing(true);
 
-    const localResult = analyzeName({
+    const localResult = generateAnalysis({
       name,
       scriptType: analysisScriptType,
       zodiac,

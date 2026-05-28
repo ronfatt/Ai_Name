@@ -83,6 +83,11 @@ export interface FiveGridAnalysis {
   givenNameStrokes: number[];
   grids: FiveGridItem[];
   corePersonalityElement: ElementName;
+  personalityElement: ElementName;
+  outerGridElement: ElementName;
+  groundGridElement: ElementName;
+  totalGridElement: ElementName;
+  skyGridElement: ElementName;
   summary: string;
 }
 

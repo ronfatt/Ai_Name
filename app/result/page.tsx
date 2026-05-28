@@ -11,7 +11,7 @@ import { ScoreCard } from "@/components/ScoreCard";
 import { SectionReportCard } from "@/components/SectionReportCard";
 import { TagBadge } from "@/components/TagBadge";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
-import { analyzeName } from "@/lib/nameAnalysis";
+import { generateAnalysis } from "@/lib/report/generateAnalysis";
 import type { AnalysisResult } from "@/types/analysis";
 
 const storageKey = "ai-name-analysis:last-result";
@@ -39,7 +39,7 @@ export default function ResultPage() {
         parsed.userInput?.name &&
         parsed.userInput?.zodiac
       ) {
-        const latest = analyzeName({
+        const latest = generateAnalysis({
           ...parsed.userInput,
           scriptType: parsed.userInput.scriptType || "traditional"
         });
