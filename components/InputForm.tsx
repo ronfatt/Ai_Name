@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { validateChineseName } from "@/lib/nameAnalysis";
 import { generateAnalysis } from "@/lib/report/generateAnalysis";
-import type { Focus, Gender } from "@/types/analysis";
+import type { BirthTimeStatus, Focus, Gender } from "@/types/analysis";
 import { LoadingAnalysis } from "@/components/LoadingAnalysis";
 
 const zodiacs = ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"];
@@ -20,9 +20,12 @@ export function InputForm() {
   const [calendarType, setCalendarType] = useState<"solar" | "lunar">("solar");
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("");
+  const [birthTimeStatus, setBirthTimeStatus] = useState<BirthTimeStatus>("exact");
+  const [approximateBirthTime, setApproximateBirthTime] = useState<"早上" | "下午" | "晚上" | "">("");
   const [birthCity, setBirthCity] = useState("");
   const [longitude, setLongitude] = useState("");
   const [useTrueSolarTime, setUseTrueSolarTime] = useState(true);
+  const [showAdvancedBirth, setShowAdvancedBirth] = useState(false);
   const [error, setError] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -50,8 +53,13 @@ export function InputForm() {
       return;
     }
 
-    if (!birthTime) {
+    if (birthTimeStatus === "exact" && !birthTime) {
       setError("请先填写出生时间，紫微斗数需要时辰才能定位命宫与迁移宫。");
+      return;
+    }
+
+    if (birthTimeStatus === "approximate" && !approximateBirthTime) {
+      setError("如果不确定准确时间，可以先选择早上、下午或晚上，老师后续会再帮你校时。");
       return;
     }
 
@@ -70,7 +78,9 @@ export function InputForm() {
       gender,
       focus,
       birthDate,
-      birthTime,
+      birthTime: resolveBirthTime(birthTimeStatus, birthTime, approximateBirthTime),
+      birthTimeStatus,
+      approximateBirthTime,
       birthCity,
       longitude: longitude ? Number(longitude) : undefined,
       calendarType,
@@ -96,7 +106,9 @@ export function InputForm() {
             gender,
             focus,
             birthDate,
-            birthTime,
+            birthTime: resolveBirthTime(birthTimeStatus, birthTime, approximateBirthTime),
+            birthTimeStatus,
+            approximateBirthTime,
             birthCity,
             longitude: longitude ? Number(longitude) : undefined,
             calendarType,
@@ -152,18 +164,17 @@ export function InputForm() {
               <option value="">请选择性别</option>
               <option value="男">男</option>
               <option value="女">女</option>
-              <option value="不透露">不方便透露</option>
             </select>
           </div>
           <div className="flex flex-wrap gap-2">
-            {(["男", "女", "不透露"] as Gender[]).map((item) => (
+            {(["男", "女"] as Gender[]).map((item) => (
               <button
                 key={item}
                 type="button"
                 onClick={() => setGender(item)}
                 className={`ziwei-chip ${gender === item ? "ziwei-chip-active" : ""}`}
               >
-                {item === "不透露" ? "不方便透露" : item}
+                {item}
               </button>
             ))}
           </div>
@@ -186,6 +197,9 @@ export function InputForm() {
       <div className="ziwei-panel">
         <div className="ziwei-panel-header">
           <h2 className="flex items-center gap-2 text-base font-semibold text-white"><span className="text-[#A77BFF]">▣</span>2 出生资料 <span className="text-xs font-normal text-warmGray">｜用于提升分析准确度</span></h2>
+          <p className="mt-2 text-xs leading-5 text-warmGray">
+            姓名本身可以看五格与字义；若要判断这个名字是否真正适合你，需要对照紫微命盘，看它有没有补到命宫、事业宫与财帛宫。
+          </p>
         </div>
         <label className="block border-b border-white/10 px-4 py-3">
           <span className="mb-2 block text-xs font-semibold text-warmGray">出生日期</span>
@@ -205,14 +219,49 @@ export function InputForm() {
         </label>
         <label className="block border-b border-white/10 px-4 py-3">
           <span className="mb-2 block text-xs font-semibold text-warmGray">出生时间</span>
-          <input
-            type="time"
-            value={birthTime}
-            onChange={(event) => setBirthTime(event.target.value)}
-            placeholder="请选择出生时间，不知道可填不确定"
-            className="ziwei-field"
-          />
-          <span className="mt-1 block text-xs leading-5 text-warmGray">不知道准确时间，可选择“不确定出生时间”。</span>
+          <div className="mb-3 flex flex-wrap gap-2">
+            {([
+              ["exact", "准确时间"],
+              ["approximate", "只知道大概"],
+              ["unknown", "不确定出生时间"]
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setBirthTimeStatus(value)}
+                className={`ziwei-chip ${birthTimeStatus === value ? "ziwei-chip-active" : ""}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {birthTimeStatus === "exact" ? (
+            <input
+              type="time"
+              value={birthTime}
+              onChange={(event) => setBirthTime(event.target.value)}
+              className="ziwei-field"
+            />
+          ) : null}
+          {birthTimeStatus === "approximate" ? (
+            <div className="flex flex-wrap gap-2">
+              {(["早上", "下午", "晚上"] as const).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setApproximateBirthTime(item)}
+                  className={`ziwei-chip ${approximateBirthTime === item ? "ziwei-chip-active" : ""}`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {birthTimeStatus === "unknown" ? (
+            <p className="rounded-2xl border border-[#6F35D8]/45 bg-white/8 px-4 py-3 text-xs leading-6 text-warmGray">
+              系统会先用中午时辰初排，命宫与迁移宫需要老师后续进一步校正。
+            </p>
+          ) : null}
         </label>
         <label className="block px-4 py-3">
           <span className="mb-2 block text-xs font-semibold text-warmGray">出生城市</span>
@@ -223,30 +272,42 @@ export function InputForm() {
             className="ziwei-field"
           />
         </label>
-        <label className="block border-t border-white/10 px-4 py-3">
-          <span className="mb-2 block text-xs font-semibold text-warmGray">出生地经度</span>
-          <input
-            value={longitude}
-            onChange={(event) => setLongitude(event.target.value)}
-            placeholder="例如：101.6869，不填则按城市估算"
-            inputMode="decimal"
-            className="ziwei-field"
-          />
-          <span className="mt-1 block text-xs leading-5 text-warmGray">用于真太阳时校正；马来西亚常见城市系统会先做基础估算。</span>
-        </label>
-        <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-white">启用真太阳时</p>
-            <p className="mt-1 text-xs leading-5 text-warmGray">根据出生地经度微调时辰，让紫微排盘更贴近实际。</p>
-          </div>
+        <div className="border-t border-white/10 px-4 py-3">
           <button
             type="button"
-            onClick={() => setUseTrueSolarTime((current) => !current)}
-            className={`h-8 w-14 rounded-full border p-1 transition ${useTrueSolarTime ? "border-[#FF67D8]/80 bg-[#6423D2]" : "border-[#6F35D8]/45 bg-[#190733]"}`}
-            aria-pressed={useTrueSolarTime}
+            onClick={() => setShowAdvancedBirth((current) => !current)}
+            className="text-sm font-semibold text-[#FFD8FF]"
           >
-            <span className={`block h-6 w-6 rounded-full bg-white transition ${useTrueSolarTime ? "translate-x-6" : "translate-x-0"}`} />
+            {showAdvancedBirth ? "收起高级设置" : "高级设置：经度与真太阳时"}
           </button>
+          {showAdvancedBirth ? (
+            <div className="mt-4 space-y-3">
+              <label className="block">
+                <span className="mb-2 block text-xs font-semibold text-warmGray">出生地经度</span>
+                <input
+                  value={longitude}
+                  onChange={(event) => setLongitude(event.target.value)}
+                  placeholder="例如：101.6869，不填则按城市估算"
+                  inputMode="decimal"
+                  className="ziwei-field"
+                />
+              </label>
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#6F35D8]/45 bg-white/8 p-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">启用真太阳时</p>
+                  <p className="mt-1 text-xs leading-5 text-warmGray">根据出生地经度微调时辰。</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUseTrueSolarTime((current) => !current)}
+                  className={`h-8 w-14 rounded-full border p-1 transition ${useTrueSolarTime ? "border-[#FF67D8]/80 bg-[#6423D2]" : "border-[#6F35D8]/45 bg-[#190733]"}`}
+                  aria-pressed={useTrueSolarTime}
+                >
+                  <span className={`block h-6 w-6 rounded-full bg-white transition ${useTrueSolarTime ? "translate-x-6" : "translate-x-0"}`} />
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -311,4 +372,14 @@ export function InputForm() {
       </section>
     </form>
   );
+}
+
+function resolveBirthTime(status: BirthTimeStatus, exactTime: string, approximate: "早上" | "下午" | "晚上" | ""): string {
+  if (status === "exact") return exactTime;
+  if (status === "approximate") {
+    if (approximate === "早上") return "09:00";
+    if (approximate === "下午") return "15:00";
+    if (approximate === "晚上") return "21:00";
+  }
+  return "12:00";
 }

@@ -2,6 +2,7 @@ export type ScriptType = "simplified" | "traditional";
 export type Gender = "男" | "女" | "不透露" | "";
 export type Focus = "家庭" | "事业" | "爱情" | "财运" | "改名" | "整体" | "";
 export type CalendarType = "solar" | "lunar";
+export type BirthTimeStatus = "exact" | "approximate" | "unknown";
 
 export interface NameAnalysisInput {
   name: string;
@@ -15,6 +16,8 @@ export interface NameAnalysisInput {
   longitude?: number;
   calendarType?: CalendarType;
   useTrueSolarTime?: boolean;
+  birthTimeStatus?: BirthTimeStatus;
+  approximateBirthTime?: "早上" | "下午" | "晚上" | "";
 }
 
 export interface CharacterAnalysis {
@@ -67,6 +70,21 @@ export interface OverallAnalysis {
   strengths: string[];
   resistances: string[];
   confirmations: string[];
+}
+
+export interface TeacherConclusion {
+  verdict: "适合继续使用" | "需要细看" | "有调整空间";
+  biggestSupport: string;
+  biggestBlock: string;
+  mustConfirm: string;
+  shortAdvice: string;
+}
+
+export interface DataConfidence {
+  level: "高" | "中" | "需校正";
+  items: string[];
+  needsTimeCalibration: boolean;
+  note: string;
 }
 
 export type WhatsappSection = "家庭" | "事业" | "爱情" | "整体";
@@ -154,6 +172,8 @@ export interface AnalysisResult {
   userInput: NameAnalysisInput;
   score: number;
   patternName: string;
+  teacherConclusion: TeacherConclusion;
+  dataConfidence: DataConfidence;
   overall: OverallAnalysis;
   characters: CharacterAnalysis[];
   fiveGrid: FiveGridAnalysis;

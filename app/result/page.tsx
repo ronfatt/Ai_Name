@@ -35,7 +35,9 @@ export default function ResultPage() {
           !parsed.zodiacName.harmonyNotes ||
           !parsed.fiveGrid ||
           !parsed.ziweiChart ||
-          !parsed.ziweiNameMatch) &&
+          !parsed.ziweiNameMatch ||
+          !parsed.teacherConclusion ||
+          !parsed.dataConfidence) &&
         parsed.userInput?.name &&
         parsed.userInput?.zodiac
       ) {
@@ -48,6 +50,8 @@ export default function ResultPage() {
           fiveGrid: parsed.fiveGrid ?? latest.fiveGrid,
           ziweiChart: parsed.ziweiChart ?? latest.ziweiChart,
           ziweiNameMatch: parsed.ziweiNameMatch ?? latest.ziweiNameMatch,
+          teacherConclusion: parsed.teacherConclusion ?? latest.teacherConclusion,
+          dataConfidence: parsed.dataConfidence ?? latest.dataConfidence,
           zodiacName: {
             ...latest.zodiacName,
             ...parsed.zodiacName,
@@ -91,6 +95,30 @@ export default function ResultPage() {
           <p className="text-sm leading-7 text-warmGray">{result.overall.opening}</p>
         </ResultCard>
 
+        <ResultCard title="老师初步判断">
+          <div className="space-y-4 text-sm leading-7 text-warmGray">
+            <div className="rounded-2xl border border-[#FF67D8]/35 bg-[#6423D2]/20 p-4">
+              <p className="text-xs font-semibold text-gold">这个名字目前偏向</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{result.teacherConclusion.verdict}</p>
+            </div>
+            <p><span className="font-semibold text-gold">最大助力：</span>{result.teacherConclusion.biggestSupport}</p>
+            <p><span className="font-semibold text-gold">最大卡点：</span>{result.teacherConclusion.biggestBlock}</p>
+            <p><span className="font-semibold text-gold">最需要确认：</span>{result.teacherConclusion.mustConfirm}</p>
+            <p className="rounded-2xl border border-white/12 bg-white/10 p-4 text-white">{result.teacherConclusion.shortAdvice}</p>
+          </div>
+        </ResultCard>
+
+        <ResultCard title="命盘资料可信度" subtle>
+          <div className="space-y-4 text-sm leading-7 text-warmGray">
+            <div className="flex flex-wrap gap-2">
+              <TagBadge>资料完整度 {result.dataConfidence.level}</TagBadge>
+              <TagBadge>{result.dataConfidence.needsTimeCalibration ? "需要老师校时" : "可初步排盘"}</TagBadge>
+            </div>
+            <ListBlock title="" items={result.dataConfidence.items.slice(0, 4)} />
+            <p>{result.dataConfidence.note}</p>
+          </div>
+        </ResultCard>
+
         <ScoreCard score={result.score} patternName={result.patternName} />
 
         <ResultCard title="紫微命盘与姓名五格">
@@ -102,6 +130,12 @@ export default function ResultPage() {
             </div>
             <p>{result.ziweiNameMatch.summary}</p>
             <p><span className="font-semibold text-gold">真太阳时：</span>{result.ziweiChart.trueSolarTime.note}</p>
+            <div className="rounded-2xl border border-white/12 bg-white/10 p-4 text-xs leading-6">
+              <p><span className="font-semibold text-white">命宫：</span>你的底层性格与人生主轴。</p>
+              <p><span className="font-semibold text-white">迁移宫：</span>外在人际、出门发展和贵人缘。</p>
+              <p><span className="font-semibold text-white">官禄宫：</span>事业定位、工作方式和职业压力。</p>
+              <p><span className="font-semibold text-white">财帛宫：</span>赚钱模式与资源累积。</p>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {[
                 ["命宫", result.ziweiChart.keyPalaces.life],
@@ -174,10 +208,10 @@ export default function ResultPage() {
 
         <ResultCard title="先把重点给老师看" subtle>
           <p className="text-sm leading-7 text-warmGray">
-            如果你看到这里，已经能感觉名字里有些地方和自己很像，可以先带着这份初步报告问老师。老师会从姓名结构、生肖喜忌和你目前最在意的方向一起看。
+            如果你看到这里，已经能感觉名字里有些地方和自己很像，可以先把这份报告发给老师。老师会先帮你确认出生时辰、命宫主星和姓名人格五行有没有真正配合。
           </p>
           <WhatsAppButton message={result.whatsappMessages["整体"]} variant="soft">
-            WhatsApp 老师先看整体重点
+            把我的命盘姓名报告发给老师
           </WhatsAppButton>
         </ResultCard>
 
@@ -231,9 +265,9 @@ export default function ResultPage() {
 
         <ResultCard title="你的名字还有更深一层没有被打开">
           <p className="text-sm leading-7 text-warmGray">
-            这份分析只是先把名字表面的能量拆给你看。真正要判断这个名字是否适合继续使用、是否需要调整，还是要结合你的出生资料、现实处境、目前最卡的事情一起看。你不需要马上做决定，可以先让老师帮你确认：这个名字是在帮你，还是有些地方正在消耗你。
+            这份分析只是先把名字和命盘的初步关系拆给你看。真正要判断这个名字是否适合继续使用、是否需要调整，还是要结合出生时辰校正、现实处境和目前最卡的事情一起看。你不需要马上做决定，可以先让老师帮你确认：这个名字是在帮你，还是有些地方正在消耗你。
           </p>
-          <WhatsAppButton message={result.whatsappMessages["整体"]}>WhatsApp 老师完整确认我的名字</WhatsAppButton>
+          <WhatsAppButton message={result.whatsappMessages["整体"]}>把我的命盘姓名报告发给老师</WhatsAppButton>
           <LeadCapture />
         </ResultCard>
 

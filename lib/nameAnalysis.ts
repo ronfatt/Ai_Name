@@ -1,9 +1,11 @@
 import type {
   AnalysisResult,
   CharacterAnalysis,
+  DataConfidence,
   ElementName,
   NameAnalysisInput,
   SectionReport,
+  TeacherConclusion,
   WhatsappSection,
   ZodiacCharacterMatch,
   ZodiacNameAnalysis
@@ -680,14 +682,14 @@ function buildWhatsappMessages(input: NameAnalysisInput, score: number): Record<
       `系统评分：${score}/100`,
       `我想进一步了解：${section === "整体" ? input.focus || "整体" : section}`,
       sectionText[section],
-      "系统提到我的名字可能有一些需要进一步确认的能量，我想知道这个名字是否适合我继续使用，以及有没有需要调整的地方。"
+      "我想请老师帮我确认出生时辰、命宫主星和姓名五格有没有真正配合，再判断这个名字是否适合我继续使用。"
     ].join("\n");
     return acc;
   }, {} as Record<WhatsappSection, string>);
 }
 
 export function analyzeName(input: NameAnalysisInput): AnalysisResult {
-  const normalizedInput = {
+  const normalizedInput: NameAnalysisInput = {
     ...input,
     name: input.name.trim(),
     focus: input.focus || "整体",
@@ -696,7 +698,9 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
     birthTime: input.birthTime?.trim() || "",
     birthCity: input.birthCity?.trim() || "",
     calendarType: input.calendarType || "solar",
-    useTrueSolarTime: Boolean(input.useTrueSolarTime)
+    useTrueSolarTime: Boolean(input.useTrueSolarTime),
+    birthTimeStatus: input.birthTimeStatus || "exact",
+    approximateBirthTime: input.approximateBirthTime || ""
   };
   const characters = analyzeCharacters(normalizedInput.name);
   const dominant = getDominantElement(characters);
@@ -704,6 +708,8 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
   const baseScore = buildScore(normalizedInput, characters);
   const score = applyZiweiScore(baseScore, metaphysics.ziweiNameMatch.scoreDelta);
   const patternName = getPatternName(characters, score, metaphysics.ziweiNameMatch.scoreDelta);
+  const teacherConclusion = buildTeacherConclusion(score, metaphysics.ziweiNameMatch.scoreDelta, metaphysics);
+  const dataConfidence = buildDataConfidence(normalizedInput);
 
   const strengths = [
     dominant === "水" ? "感受力细腻，能察觉别人没说出口的情绪" : "责任感较强，遇到事情愿意先想办法承担",
@@ -727,6 +733,8 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
     userInput: normalizedInput,
     score,
     patternName,
+    teacherConclusion,
+    dataConfidence,
     overall: {
       opening:
         "我先温和地跟你说，名字不是简单分成好或不好。新版会先以紫微斗数的命宫、迁移宫、官禄宫、财帛宫作为主轴，再用姓名五格去看名字是否补到你的命盘需要。生肖姓名学仍会保留，但它现在是辅助参考，不会单独决定结论。",
@@ -748,6 +756,52 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
       `综合来看，这份报告的主轴已经从单纯生肖姓名学，改成「${metaphysics.ziweiNameMatch.primaryLogic}」。你的姓名人格属${metaphysics.fiveGrid.corePersonalityElement}，命宫主星参考${metaphysics.ziweiChart.keyPalaces.life.majorStars.join("、") || "空宫"}，官禄宫参考${metaphysics.ziweiChart.keyPalaces.career.majorStars.join("、") || "空宫"}。名字不是只看笔画吉凶，而是看它有没有帮你承接命盘里真正需要被补、被稳住或被引动的地方。`,
     deeperQuestions: confirmations,
     whatsappMessages: buildWhatsappMessages(normalizedInput, score)
+  };
+}
+
+function buildTeacherConclusion(
+  score: number,
+  scoreDelta: number,
+  metaphysics: ReturnType<typeof buildMetaphysicsProfile>
+): TeacherConclusion {
+  const verdict: TeacherConclusion["verdict"] =
+    score >= 84 && scoreDelta >= 0 ? "适合继续使用" : scoreDelta <= -18 ? "有调整空间" : "需要细看";
+  const strongestRule = [...metaphysics.ziweiNameMatch.rules].sort((a, b) => b.scoreDelta - a.scoreDelta)[0];
+  const weakestRule = [...metaphysics.ziweiNameMatch.rules].sort((a, b) => a.scoreDelta - b.scoreDelta)[0];
+
+  return {
+    verdict,
+    biggestSupport: strongestRule?.text ?? "姓名五格与紫微核心宫位之间有可参考的互补点。",
+    biggestBlock: weakestRule?.scoreDelta < 0 ? weakestRule.text : "目前没有看到特别重的克制点，但仍需结合完整资料细看。",
+    mustConfirm: "最需要确认的是出生时辰是否准确，以及命宫、迁移宫、官禄宫、财帛宫和姓名五格是否互相配合。",
+    shortAdvice: verdict === "适合继续使用"
+      ? "这个名字初步看有可用之处，但是否适合长期使用，仍建议让老师结合完整命盘确认。"
+      : "这个名字不是不能用，而是有些宫位和五格关系需要老师进一步判断，不建议只看分数下决定。"
+  };
+}
+
+function buildDataConfidence(input: NameAnalysisInput): DataConfidence {
+  const items: string[] = [];
+  const hasBirthCore = Boolean(input.birthDate && input.birthCity);
+  const hasExactTime = input.birthTimeStatus !== "unknown" && Boolean(input.birthTime);
+  const hasLongitude = typeof input.longitude === "number" && Number.isFinite(input.longitude);
+
+  items.push(input.birthDate ? "出生日期已填写" : "出生日期缺失");
+  items.push(hasExactTime ? "出生时间可用于排盘" : "出生时间需老师校正");
+  items.push(input.birthCity ? "出生城市已填写" : "出生城市缺失");
+  items.push(input.useTrueSolarTime ? "已启用真太阳时" : "未启用真太阳时");
+  items.push(hasLongitude ? "经度由用户提供" : "经度由城市估算");
+
+  const level: DataConfidence["level"] =
+    hasBirthCore && hasExactTime && input.useTrueSolarTime ? "高" : hasBirthCore ? "中" : "需校正";
+
+  return {
+    level,
+    items,
+    needsTimeCalibration: !hasExactTime,
+    note: !hasExactTime
+      ? "因为出生时间不确定，本报告先以中午或大概时段初排，命宫与迁移宫需要老师进一步校时。"
+      : "出生资料已可用于初步排盘；若要完整判断，仍建议老师结合实际情况复核。"
   };
 }
 
