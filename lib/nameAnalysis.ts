@@ -8,6 +8,7 @@ import type {
   ZodiacCharacterMatch,
   ZodiacNameAnalysis
 } from "@/types/analysis";
+import { buildMetaphysicsProfile } from "@/lib/metaphysicsEngine";
 
 const elements: ElementName[] = ["木", "火", "土", "金", "水"];
 
@@ -510,9 +511,15 @@ function buildScore(input: NameAnalysisInput, chars: CharacterAnalysis[]): numbe
   return Math.min(88, Math.max(72, 72 + (seed % 11) + matchBonus + balanceBonus + relationBonus));
 }
 
-function getPatternName(chars: CharacterAnalysis[], score: number): string {
+function applyZiweiScore(baseScore: number, scoreDelta: number): number {
+  return Math.min(92, Math.max(68, baseScore + Math.round(scoreDelta / 8)));
+}
+
+function getPatternName(chars: CharacterAnalysis[], score: number, ziweiDelta = 0): string {
   const dominant = getDominantElement(chars);
 
+  if (ziweiDelta >= 20) return "命名互补型";
+  if (ziweiDelta <= -18) return "宫名需调型";
   if (score >= 84) return "稳中开运型";
   if (dominant === "土") return "责任成长型";
   if (dominant === "水") return "情感敏锐型";
@@ -606,6 +613,53 @@ function makeSectionReport(kind: "家庭" | "事业" | "爱情", dominant: Eleme
   };
 }
 
+function makeZiweiSectionReport(
+  kind: "家庭" | "事业" | "爱情",
+  dominant: ElementName,
+  input: NameAnalysisInput,
+  metaphysics: ReturnType<typeof buildMetaphysicsProfile>
+): SectionReport {
+  const life = metaphysics.ziweiChart.keyPalaces.life;
+  const migration = metaphysics.ziweiChart.keyPalaces.migration;
+  const career = metaphysics.ziweiChart.keyPalaces.career;
+  const wealth = metaphysics.ziweiChart.keyPalaces.wealth;
+  const nameElement = metaphysics.fiveGrid.corePersonalityElement;
+  const focusHint = input.focus === kind || (kind === "事业" && input.focus === "财运")
+    ? "你特别想看这一块时，建议进一步让老师把出生资料、现实处境和姓名五格一起看，判断会更贴近本人。"
+    : "这里先给你一个方向，不急着下结论，完整判断仍要结合出生资料和现实处境。";
+
+  if (kind === "家庭") {
+    return {
+      title: "家庭分析",
+      overall: `家庭这边先看命宫与姓名人格。命宫主星参考「${life.majorStars.join("、") || "空宫"}」，宫位五行偏${life.element}；姓名人格属${nameElement}，所以家庭底色不是只看姓氏，而是看你如何承接早年环境与内在安全感。`,
+      past: `过去比较像有一段需要自己消化压力的阶段。名字里有${elementTone(dominant)}的气息，再碰到命宫${life.element}气，会让你对家庭气氛、长辈期待或责任分配比较敏感。`,
+      present: "现在的你在家人面前可能习惯表现得稳定，但稳定不代表完全轻松。若名字五格和命宫之间有克制或消耗，就容易出现心里想讲、但又怕讲了影响关系的状态。",
+      future: "往后家庭关系仍有慢慢调整的空间，关键不在强行改变谁，而是看清楚哪些责任属于你，哪些只是长期习惯背在身上。",
+      reminder: `老师温和提醒：家庭不能只用生肖字根判断，最好把命宫、父母家庭感受和姓名人格一起看。${focusHint}如果你愿意，可以把家庭这段发给老师，让老师帮你看是哪一层能量比较重。`
+    };
+  }
+
+  if (kind === "事业") {
+    return {
+      title: "事业分析",
+      overall: `事业这边主看官禄宫与财帛宫。官禄宫主星参考「${career.majorStars.join("、") || "空宫"}」，财帛宫主星参考「${wealth.majorStars.join("、") || "空宫"}」，再对照姓名人格${nameElement}气，判断名字是帮你推进，还是让机会来得比较慢。`,
+      past: "过去事业或学习阶段，可能比较像有能力但节奏不一定顺。有时不是你不努力，而是官禄宫、财帛宫和姓名五行之间若有拉扯，就会出现方向反复、贵人不稳或回报较慢的感觉。",
+      present: `现在适合先看官禄宫${career.element}气和姓名人格${nameElement}是否相生。若相生，名字比较像能帮你把能力推出去；若相克，就要确认目前事业是否有卡在定位、表达或选择上。`,
+      future: "未来事业仍有打开空间，尤其当你把能力集中在适合自己的方向，而不是一直被外界节奏带着走，名字里后期累积的力量会比较容易显出来。",
+      reminder: `老师温和提醒：事业与财运要重点看官禄、财帛，再看五格人格是否补位。${focusHint}这一块很适合通过 WhatsApp 让老师进一步对照完整命盘。`
+    };
+  }
+
+  return {
+    title: "爱情分析",
+    overall: `感情这边先看命宫的内在模式，再看迁移宫如何影响你面对外界和亲密关系。迁移宫主星参考「${migration.majorStars.join("、") || "空宫"}」，宫位五行偏${migration.element}，会影响你在关系里如何靠近、退开和保护自己。`,
+    past: "过去感情里，可能有过不容易完全说出口的失落或期待落差。若姓名人格和命宫、迁移宫之间有消耗感，就比较像心里放得深，但表面未必愿意让对方看见。",
+    present: `现在你会更在意关系是否让自己安心。姓名人格属${nameElement}，如果它能生扶迁移宫，感情里比较容易沟通；如果有克制，就要留意自己是否容易想很多、忍很多。`,
+    future: "未来感情不是只看桃花，而是看你能不能遇到让你放松的人，也看你是否愿意把边界与需要讲得更清楚。",
+    reminder: `老师温和提醒：爱情与婚姻不能只看一个名字好不好听，要看命宫、迁移宫和姓名人格之间有没有互相支持。${focusHint}如果这段让你有感觉，可以让老师帮你看感情模式卡在哪里。`
+  };
+}
+
 function buildWhatsappMessages(input: NameAnalysisInput, score: number): Record<WhatsappSection, string> {
   const sections: WhatsappSection[] = ["家庭", "事业", "爱情", "整体"];
   const sectionText: Record<WhatsappSection, string> = {
@@ -620,6 +674,9 @@ function buildWhatsappMessages(input: NameAnalysisInput, score: number): Record<
       "老师你好，我刚刚做了姓名学初步分析。",
       `姓名：${input.name}`,
       `生肖：${input.zodiac}`,
+      input.birthDate ? `出生日期：${input.birthDate}` : "出生日期：未填写",
+      input.birthTime ? `出生时间：${input.birthTime}` : "出生时间：未填写",
+      input.birthCity ? `出生城市：${input.birthCity}` : "出生城市：未填写",
       `系统评分：${score}/100`,
       `我想进一步了解：${section === "整体" ? input.focus || "整体" : section}`,
       sectionText[section],
@@ -634,12 +691,19 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
     ...input,
     name: input.name.trim(),
     focus: input.focus || "整体",
-    gender: input.gender || "不透露"
+    gender: input.gender || "不透露",
+    birthDate: input.birthDate?.trim() || "",
+    birthTime: input.birthTime?.trim() || "",
+    birthCity: input.birthCity?.trim() || "",
+    calendarType: input.calendarType || "solar",
+    useTrueSolarTime: Boolean(input.useTrueSolarTime)
   };
   const characters = analyzeCharacters(normalizedInput.name);
   const dominant = getDominantElement(characters);
-  const score = buildScore(normalizedInput, characters);
-  const patternName = getPatternName(characters, score);
+  const metaphysics = buildMetaphysicsProfile(normalizedInput, characters);
+  const baseScore = buildScore(normalizedInput, characters);
+  const score = applyZiweiScore(baseScore, metaphysics.ziweiNameMatch.scoreDelta);
+  const patternName = getPatternName(characters, score, metaphysics.ziweiNameMatch.scoreDelta);
 
   const strengths = [
     dominant === "水" ? "感受力细腻，能察觉别人没说出口的情绪" : "责任感较强，遇到事情愿意先想办法承担",
@@ -654,9 +718,9 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
   ];
 
   const confirmations = [
-    "名字中的五行是否真的配合你的生肖",
-    "事业与财运是否被姓名结构卡住",
-    "感情或家庭模式是否需要通过名字能量调整"
+    "人格五行是否真正补到命宫与迁移宫需要的能量",
+    "官禄宫、财帛宫主星是否被姓名五格生扶或克制",
+    "生肖姓名学看到的字根关系，是否和紫微核心宫位互相印证"
   ];
 
   return {
@@ -665,20 +729,23 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
     patternName,
     overall: {
       opening:
-        "我先温和地跟你说，名字不是简单分成好或不好。一个名字里面，会带着一个人的家庭根基、做事方式、感情模式，也会留下某些压力和转折的痕迹。下面这份是根据姓名结构与生肖做出的初步参考，你可以先当成老师陪你把名字慢慢拆开来看。",
+        "我先温和地跟你说，名字不是简单分成好或不好。新版会先以紫微斗数的命宫、迁移宫、官禄宫、财帛宫作为主轴，再用姓名五格去看名字是否补到你的命盘需要。生肖姓名学仍会保留，但它现在是辅助参考，不会单独决定结论。",
       strengths,
       resistances,
       confirmations
     },
     characters,
+    fiveGrid: metaphysics.fiveGrid,
+    ziweiChart: metaphysics.ziweiChart,
+    ziweiNameMatch: metaphysics.ziweiNameMatch,
     zodiacName: analyzeZodiacName(normalizedInput, characters, dominant),
-    family: makeSectionReport("家庭", dominant, normalizedInput),
-    career: makeSectionReport("事业", dominant, normalizedInput),
-    love: makeSectionReport("爱情", dominant, normalizedInput),
+    family: makeZiweiSectionReport("家庭", dominant, normalizedInput, metaphysics),
+    career: makeZiweiSectionReport("事业", dominant, normalizedInput, metaphysics),
+    love: makeZiweiSectionReport("爱情", dominant, normalizedInput, metaphysics),
     pastTrace:
-      "从你的姓名结构来看，过去的路可能不是完全轻松的。这个名字里面有一种早熟、承担、先压住自己再慢慢突破的气场。某个阶段，你可能经历过比较明显的失落、分离感、家庭压力、人际伤害、事业低谷，或一些心里很难对别人说出口的事情。这里不能直接断定具体事件，但如果你读到这里有一点被说中的感觉，这部分能量就很值得进一步确认。",
+      `从紫微核心宫位和姓名人格五行来看，你过去的路可能不是完全轻松的。${metaphysics.ziweiNameMatch.rules[0]?.text ?? "名字和命盘之间有一些需要细看的地方。"}这不代表一定发生过什么严重事件，只是比较像某个阶段有压力、转折、失落、家庭责任、人际伤害、事业低谷或感情变化，需要老师结合完整出生资料再确认。`,
     summary:
-      "综合来看，你的名字里面最明显的不是没运，而是压力感比较重。家庭方面容易承担，事业方面想突破，感情方面又不太容易真正放下。这三件事有一个共同点：你常常不是没有路，而是心里背着太多东西。名字如果能被更细地看见，也许你会更清楚自己到底卡在哪里。",
+      `综合来看，这份报告的主轴已经从单纯生肖姓名学，改成「${metaphysics.ziweiNameMatch.primaryLogic}」。你的姓名人格属${metaphysics.fiveGrid.corePersonalityElement}，命宫主星参考${metaphysics.ziweiChart.keyPalaces.life.majorStars.join("、") || "空宫"}，官禄宫参考${metaphysics.ziweiChart.keyPalaces.career.majorStars.join("、") || "空宫"}。名字不是只看笔画吉凶，而是看它有没有帮你承接命盘里真正需要被补、被稳住或被引动的地方。`,
     deeperQuestions: confirmations,
     whatsappMessages: buildWhatsappMessages(normalizedInput, score)
   };

@@ -20,6 +20,8 @@ export function InputForm() {
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("");
   const [birthCity, setBirthCity] = useState("");
+  const [longitude, setLongitude] = useState("");
+  const [useTrueSolarTime, setUseTrueSolarTime] = useState(true);
   const [error, setError] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -45,14 +47,23 @@ export function InputForm() {
       scriptType: analysisScriptType,
       zodiac,
       gender,
-      focus
+      focus,
+      birthDate,
+      birthTime,
+      birthCity,
+      longitude: longitude ? Number(longitude) : undefined,
+      calendarType,
+      useTrueSolarTime
     });
 
     const minimumLoading = new Promise((resolve) => window.setTimeout(resolve, 4300));
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 18_000);
 
     try {
       const reportResponse = await fetch("/api/generate-report", {
         method: "POST",
+        signal: controller.signal,
         headers: {
           "Content-Type": "application/json"
         },
@@ -62,7 +73,13 @@ export function InputForm() {
             scriptType: analysisScriptType,
             zodiac,
             gender,
-            focus
+            focus,
+            birthDate,
+            birthTime,
+            birthCity,
+            longitude: longitude ? Number(longitude) : undefined,
+            calendarType,
+            useTrueSolarTime
           },
           localAnalysis: localResult
         })
@@ -71,10 +88,12 @@ export function InputForm() {
       const reportData = (await reportResponse.json()) as { analysis?: typeof localResult };
       const finalResult = reportResponse.ok && reportData.analysis ? reportData.analysis : localResult;
 
+      window.clearTimeout(timeout);
       await minimumLoading;
       window.localStorage.setItem("ai-name-analysis:last-result", JSON.stringify(finalResult));
       router.push("/result");
     } catch {
+      window.clearTimeout(timeout);
       await minimumLoading;
       window.localStorage.setItem("ai-name-analysis:last-result", JSON.stringify(localResult));
       router.push("/result");
@@ -151,6 +170,7 @@ export function InputForm() {
           <span className="mb-2 block text-xs font-semibold text-warmGray">出生日期</span>
           <div className="grid grid-cols-[1fr_auto] gap-2">
             <input
+              type="date"
               value={birthDate}
               onChange={(event) => setBirthDate(event.target.value)}
               placeholder="请选择出生年月日"
@@ -165,6 +185,7 @@ export function InputForm() {
         <label className="block border-b border-white/10 px-4 py-3">
           <span className="mb-2 block text-xs font-semibold text-warmGray">出生时间</span>
           <input
+            type="time"
             value={birthTime}
             onChange={(event) => setBirthTime(event.target.value)}
             placeholder="请选择出生时间，不知道可填不确定"
@@ -181,6 +202,31 @@ export function InputForm() {
             className="ziwei-field"
           />
         </label>
+        <label className="block border-t border-white/10 px-4 py-3">
+          <span className="mb-2 block text-xs font-semibold text-warmGray">出生地经度</span>
+          <input
+            value={longitude}
+            onChange={(event) => setLongitude(event.target.value)}
+            placeholder="例如：101.6869，不填则按城市估算"
+            inputMode="decimal"
+            className="ziwei-field"
+          />
+          <span className="mt-1 block text-xs leading-5 text-warmGray">用于真太阳时校正；马来西亚常见城市系统会先做基础估算。</span>
+        </label>
+        <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold text-white">启用真太阳时</p>
+            <p className="mt-1 text-xs leading-5 text-warmGray">根据出生地经度微调时辰，让紫微排盘更贴近实际。</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setUseTrueSolarTime((current) => !current)}
+            className={`h-8 w-14 rounded-full border p-1 transition ${useTrueSolarTime ? "border-[#FF67D8]/80 bg-[#6423D2]" : "border-[#6F35D8]/45 bg-[#190733]"}`}
+            aria-pressed={useTrueSolarTime}
+          >
+            <span className={`block h-6 w-6 rounded-full bg-white transition ${useTrueSolarTime ? "translate-x-6" : "translate-x-0"}`} />
+          </button>
+        </div>
       </div>
 
       <div className="ziwei-panel">

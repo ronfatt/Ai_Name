@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
 
-const SYSTEM_PROMPT = `你是一位温和、专业、有经验的华人姓名学与风水命理老师。你的语气像真人老师在聊天，不要像机器报告。请根据规则引擎提供的姓名结构、五行、笔画、生肖关系，生成一份专业但有人情味的姓名学初步分析。报告必须从家庭、事业、爱情三个方向展开。可以指出过去可能有压力、转折、失落、家庭责任、人际伤害、事业低谷或感情变化，但不能断言具体灾祸，不能恐吓，不能说“你一定”。不要给完整解决方案或改名方案，要自然引导用户通过 WhatsApp 进一步咨询。`;
+const SYSTEM_PROMPT = `你是一位温和、专业、有经验的华人姓名学与紫微斗数老师。你的语气像真人老师在聊天，不要像机器报告。请根据规则引擎提供的紫微命盘结构、命宫、迁移宫、官禄宫、财帛宫、姓名五格、五行、笔画和生肖辅助关系，生成一份专业但有人情味的姓名命格初步分析。AI 只负责润色和组织报告，不负责创造新的命理规则，不能改变规则引擎给出的分数、宫位、主星、五格和五行。报告必须从家庭、事业、爱情三个方向展开。可以指出过去可能有压力、转折、失落、家庭责任、人际伤害、事业低谷或感情变化，但不能断言具体灾祸，不能恐吓，不能说“你一定”。不要给完整解决方案或改名方案，要自然引导用户通过 WhatsApp 进一步咨询。`;
 
 interface GenerateReportBody {
   input?: NameAnalysisInput;
@@ -148,8 +148,12 @@ function getLocalAnalysis(body: GenerateReportBody): AnalysisResult | null {
 }
 
 async function generateAiReport(localAnalysis: AnalysisResult): Promise<AiReportPatch> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 18_000);
+
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
+    signal: controller.signal,
     headers: {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       "Content-Type": "application/json"
@@ -177,6 +181,7 @@ async function generateAiReport(localAnalysis: AnalysisResult): Promise<AiReport
       max_output_tokens: 5200
     })
   });
+  clearTimeout(timeout);
 
   if (!response.ok) {
     throw new Error(`OpenAI API returned ${response.status}`);
@@ -198,7 +203,7 @@ async function generateAiReport(localAnalysis: AnalysisResult): Promise<AiReport
 
 function buildUserPrompt(localAnalysis: AnalysisResult): string {
   return [
-    "请只根据下面本地规则引擎输出润色报告，不要创造新的命理规则，不要改变分数、格局、五行、笔画、姓名拆字结果、生肖五行关系。",
+    "请只根据下面本地规则引擎输出润色报告，不要创造新的命理规则，不要改变分数、格局、紫微宫位、主星、五格、五行、笔画、姓名拆字结果、生肖五行关系。",
     "输出必须是 JSON，字段必须符合 schema。",
     "安全要求：不恐吓、不断言灾祸、不说具体死亡、疾病、车祸、破产、离婚等严重事件、不说“你一定”、不给完整改名方案。",
     "转化要求：每个家庭、事业、爱情板块结尾都自然提醒可通过 WhatsApp 让老师进一步确认，但语气要温和。",
@@ -214,6 +219,20 @@ function buildUserPrompt(localAnalysis: AnalysisResult): string {
         patternName: localAnalysis.patternName,
         overall: localAnalysis.overall,
         characters: localAnalysis.characters,
+        fiveGrid: localAnalysis.fiveGrid,
+        ziweiChart: {
+          source: localAnalysis.ziweiChart.source,
+          solarDate: localAnalysis.ziweiChart.solarDate,
+          lunarDate: localAnalysis.ziweiChart.lunarDate,
+          adjustedDateTime: localAnalysis.ziweiChart.adjustedDateTime,
+          trueSolarTime: localAnalysis.ziweiChart.trueSolarTime,
+          ganzhi: localAnalysis.ziweiChart.ganzhi,
+          soul: localAnalysis.ziweiChart.soul,
+          body: localAnalysis.ziweiChart.body,
+          fiveElementsClass: localAnalysis.ziweiChart.fiveElementsClass,
+          keyPalaces: localAnalysis.ziweiChart.keyPalaces
+        },
+        ziweiNameMatch: localAnalysis.ziweiNameMatch,
         zodiacName: localAnalysis.zodiacName,
         family: localAnalysis.family,
         career: localAnalysis.career,

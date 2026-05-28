@@ -29,18 +29,30 @@ export default function ResultPage() {
 
     try {
       const parsed = JSON.parse(raw) as AnalysisResult;
-      if ((!parsed.zodiacName || !parsed.zodiacName.characterMatches || !parsed.zodiacName.harmonyNotes) && parsed.userInput?.name && parsed.userInput?.zodiac) {
-        const latestZodiacName = analyzeName({
+      if (
+        (!parsed.zodiacName ||
+          !parsed.zodiacName.characterMatches ||
+          !parsed.zodiacName.harmonyNotes ||
+          !parsed.fiveGrid ||
+          !parsed.ziweiChart ||
+          !parsed.ziweiNameMatch) &&
+        parsed.userInput?.name &&
+        parsed.userInput?.zodiac
+      ) {
+        const latest = analyzeName({
           ...parsed.userInput,
           scriptType: parsed.userInput.scriptType || "traditional"
-        }).zodiacName;
+        });
         const repaired = {
           ...parsed,
+          fiveGrid: parsed.fiveGrid ?? latest.fiveGrid,
+          ziweiChart: parsed.ziweiChart ?? latest.ziweiChart,
+          ziweiNameMatch: parsed.ziweiNameMatch ?? latest.ziweiNameMatch,
           zodiacName: {
-            ...latestZodiacName,
+            ...latest.zodiacName,
             ...parsed.zodiacName,
-            characterMatches: parsed.zodiacName?.characterMatches ?? latestZodiacName.characterMatches,
-            harmonyNotes: parsed.zodiacName?.harmonyNotes ?? latestZodiacName.harmonyNotes
+            characterMatches: parsed.zodiacName?.characterMatches ?? latest.zodiacName.characterMatches,
+            harmonyNotes: parsed.zodiacName?.harmonyNotes ?? latest.zodiacName.harmonyNotes
           }
         };
         window.localStorage.setItem(storageKey, JSON.stringify(repaired));
@@ -71,6 +83,7 @@ export default function ResultPage() {
           <div className="mt-3 flex flex-wrap gap-2">
             <TagBadge>生肖 {result.userInput.zodiac}</TagBadge>
             <TagBadge>关注 {result.userInput.focus || "整体"}</TagBadge>
+            {result.userInput.birthDate ? <TagBadge>{result.userInput.birthDate}</TagBadge> : null}
           </div>
         </section>
 
@@ -80,7 +93,47 @@ export default function ResultPage() {
 
         <ScoreCard score={result.score} patternName={result.patternName} />
 
-        <ResultCard title="生肖与名字的配合">
+        <ResultCard title="紫微命盘与姓名五格">
+          <div className="space-y-4 text-sm leading-7 text-warmGray">
+            <div className="flex flex-wrap gap-2">
+              <TagBadge>{result.ziweiChart.source === "iztro" ? "紫微排盘" : "本地初排"}</TagBadge>
+              <TagBadge>命宫 {result.ziweiChart.keyPalaces.life.majorStars.join("、") || "空宫"}</TagBadge>
+              <TagBadge>人格 {result.ziweiNameMatch.nameGridElement}</TagBadge>
+            </div>
+            <p>{result.ziweiNameMatch.summary}</p>
+            <p><span className="font-semibold text-gold">真太阳时：</span>{result.ziweiChart.trueSolarTime.note}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                ["命宫", result.ziweiChart.keyPalaces.life],
+                ["迁移宫", result.ziweiChart.keyPalaces.migration],
+                ["官禄宫", result.ziweiChart.keyPalaces.career],
+                ["财帛宫", result.ziweiChart.keyPalaces.wealth]
+              ].map(([label, palace]) => (
+                <div key={label as string} className="rounded-2xl border border-white/12 bg-white/10 px-3 py-3">
+                  <p className="font-semibold text-white">{label as string}</p>
+                  <p className="mt-1 text-xs leading-5">{(palace as typeof result.ziweiChart.keyPalaces.life).majorStars.join("、") || "空宫"}｜五行 {(palace as typeof result.ziweiChart.keyPalaces.life).element}</p>
+                </div>
+              ))}
+            </div>
+            <ListBlock title="命名互证规则" items={result.ziweiNameMatch.rules.slice(0, 3).map((rule) => `${rule.title}：${rule.text}`)} />
+          </div>
+        </ResultCard>
+
+        <ResultCard title="五格笔画与人格五行">
+          <div className="space-y-4 text-sm leading-7 text-warmGray">
+            <p>{result.fiveGrid.summary}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {result.fiveGrid.grids.map((grid) => (
+                <div key={grid.name} className="rounded-2xl border border-white/12 bg-white/10 px-3 py-3">
+                  <p className="font-semibold text-white">{grid.name}</p>
+                  <p className="mt-1 text-xs leading-5">{grid.number} 画｜五行 {grid.element}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </ResultCard>
+
+        <ResultCard title="生肖与名字的配合（辅助参考）">
           <div className="space-y-4 text-sm leading-7 text-warmGray">
             <div className="flex flex-wrap gap-2">
               <TagBadge>{result.zodiacName.zodiacElement}</TagBadge>
