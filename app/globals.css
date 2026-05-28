@@ -22,7 +22,7 @@ body {
     radial-gradient(circle at 15% 8%, rgba(200, 59, 255, 0.28), transparent 18rem),
     radial-gradient(circle at 82% 18%, rgba(255, 55, 166, 0.24), transparent 24rem),
     radial-gradient(circle at 70% 90%, rgba(95, 168, 255, 0.14), transparent 22rem),
-    linear-gradient(135deg, #080925 0%, #1a0d39 48%, #5a123f 100%);
+    linear-gradient(135deg, #050018 0%, #12002F 48%, #2D063E 100%);
   color: #ffffff;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Helvetica Neue", Arial, sans-serif;
 }
@@ -70,6 +70,69 @@ select {
     0 0 0 44px rgba(200, 59, 255, 0.045),
     0 0 0 88px rgba(95, 168, 255, 0.035),
     inset 0 0 0 34px rgba(255, 255, 255, 0.025);
+}
+
+.ziwei-orb {
+  position: relative;
+  width: 154px;
+  height: 154px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.28) 0 2px, transparent 3px),
+    conic-gradient(from 20deg, rgba(255, 79, 216, 0.1), rgba(43, 217, 255, 0.2), rgba(255, 190, 77, 0.13), rgba(255, 79, 216, 0.1));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 48px rgba(200, 59, 255, 0.35), inset 0 0 42px rgba(43, 217, 255, 0.12);
+}
+
+.ziwei-orb::before,
+.ziwei-orb::after {
+  content: "";
+  position: absolute;
+  inset: 17px;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 103, 216, 0.38);
+}
+
+.ziwei-orb::after {
+  inset: 38px;
+  border-color: rgba(255, 190, 77, 0.28);
+  box-shadow: 0 0 24px rgba(255, 79, 216, 0.28);
+}
+
+.ziwei-gem {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  width: 52px;
+  height: 72px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: linear-gradient(135deg, rgba(255, 79, 216, 0.88), rgba(140, 77, 255, 0.76), rgba(43, 217, 255, 0.72));
+  box-shadow: 0 0 34px rgba(255, 79, 216, 0.7);
+}
+
+.five-wheel {
+  position: relative;
+  width: 176px;
+  height: 176px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 103, 216, 0.28);
+  background: radial-gradient(circle, rgba(200, 59, 255, 0.34), transparent 35%), radial-gradient(circle, rgba(43, 217, 255, 0.14), transparent 62%);
+  box-shadow: inset 0 0 48px rgba(200, 59, 255, 0.18), 0 0 42px rgba(200, 59, 255, 0.24);
+}
+
+.five-node {
+  position: absolute;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 0 22px rgba(255, 103, 216, 0.28);
 }
 
 .loading-dot {
