@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   background: #0b0b2e;
 }
 
@@ -31,6 +31,42 @@ button,
 input,
 select {
   font: inherit;
+}
+
+input,
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background: #16052f;
+  color: #ffffff;
+}
+
+@layer components {
+  .ziwei-panel {
+    @apply overflow-hidden rounded-[28px] border border-[#6F35D8]/60 bg-[rgba(18,0,34,0.68)] shadow-soft backdrop-blur;
+  }
+
+  .ziwei-panel-header {
+    @apply border-b border-[#6F35D8]/45 px-4 py-4;
+  }
+
+  .ziwei-field {
+    @apply h-12 w-full rounded-[22px] border border-[#6F35D8]/45 bg-[rgba(25,7,51,0.78)] px-4 text-[16px] text-white shadow-[inset_0_0_24px_rgba(140,77,255,0.14)] outline-none transition placeholder:text-[rgba(175,160,201,0.58)] focus:border-[#FF67D8]/80 focus:bg-[rgba(32,10,65,0.86)] focus:ring-2 focus:ring-[rgba(255,103,216,0.22)];
+  }
+
+  .ziwei-field-compact {
+    @apply h-12 rounded-[22px] border border-[#6F35D8]/45 bg-[rgba(25,7,51,0.78)] px-4 text-[16px] text-white shadow-[inset_0_0_24px_rgba(140,77,255,0.14)] outline-none transition placeholder:text-[rgba(175,160,201,0.58)] focus:border-[#FF67D8]/80 focus:bg-[rgba(32,10,65,0.86)] focus:ring-2 focus:ring-[rgba(255,103,216,0.22)];
+  }
+
+  .ziwei-chip {
+    @apply rounded-full border border-[#6F35D8]/45 bg-[rgba(26,7,53,0.62)] px-4 py-1.5 text-xs font-medium text-[#CFC2E2] transition active:scale-[0.98];
+  }
+
+  .ziwei-chip-active {
+    @apply border-[#FF67D8]/85 bg-[rgba(100,35,210,0.82)] text-white shadow-[0_0_20px_rgba(255,79,216,0.26)];
+  }
 }
 
 .app-scrollbar::-webkit-scrollbar {

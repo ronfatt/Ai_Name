@@ -15,6 +15,7 @@ export function InputForm() {
   const [zodiac, setZodiac] = useState("");
   const [gender, setGender] = useState<Gender>("");
   const [focus, setFocus] = useState<Focus>("整体");
+  const [focusDisplay, setFocusDisplay] = useState("整体");
   const [calendarType, setCalendarType] = useState<"solar" | "lunar">("solar");
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("");
@@ -86,8 +87,8 @@ export function InputForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="overflow-hidden rounded-[22px] border border-[#7C3DFF]/45 bg-[#120A3A]/82 shadow-soft backdrop-blur">
-        <div className="border-b border-[#7C3DFF]/35 px-4 py-3">
+      <div className="ziwei-panel">
+        <div className="ziwei-panel-header">
           <h2 className="flex items-center gap-2 text-base font-semibold text-white"><span className="text-[#A77BFF]">●</span>1 姓名资料</h2>
         </div>
         <label className="block border-b border-white/10 px-4 py-3">
@@ -96,7 +97,7 @@ export function InputForm() {
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="请输入你的常用中文姓名"
-            className="h-11 w-full rounded-2xl border border-white/12 bg-white/8 px-4 text-[16px] text-white outline-none placeholder:text-warmGray/55 focus:border-[#FF67D8]/60"
+            className="ziwei-field"
           />
           <span className="mt-1 block text-xs leading-5 text-warmGray">系统会自动以繁体姓名笔画进行初步分析。</span>
         </label>
@@ -106,7 +107,7 @@ export function InputForm() {
             <select
               value={gender}
               onChange={(event) => setGender(event.target.value as Gender)}
-              className="h-11 rounded-2xl border border-white/12 bg-white/8 px-4 text-[16px] text-white outline-none focus:border-[#FF67D8]/60"
+              className="ziwei-field"
             >
               <option value="">请选择性别</option>
               <option value="男">男</option>
@@ -120,7 +121,7 @@ export function InputForm() {
                 key={item}
                 type="button"
                 onClick={() => setGender(item)}
-                className={`rounded-full border px-4 py-1 text-xs ${gender === item ? "border-[#FF67D8] bg-[#6320C8] text-white" : "border-white/10 bg-white/8 text-warmGray"}`}
+                className={`ziwei-chip ${gender === item ? "ziwei-chip-active" : ""}`}
               >
                 {item === "不透露" ? "不方便透露" : item}
               </button>
@@ -132,7 +133,7 @@ export function InputForm() {
           <select
             value={zodiac}
             onChange={(event) => setZodiac(event.target.value)}
-            className="h-11 w-full rounded-2xl border border-white/12 bg-white/8 px-4 text-[16px] text-white outline-none focus:border-[#FF67D8]/60"
+            className="ziwei-field"
           >
             <option value="">请选择生肖</option>
             {zodiacs.map((item) => (
@@ -142,8 +143,8 @@ export function InputForm() {
         </label>
       </div>
 
-      <div className="overflow-hidden rounded-[22px] border border-[#7C3DFF]/45 bg-[#120A3A]/82 shadow-soft backdrop-blur">
-        <div className="border-b border-[#7C3DFF]/35 px-4 py-3">
+      <div className="ziwei-panel">
+        <div className="ziwei-panel-header">
           <h2 className="flex items-center gap-2 text-base font-semibold text-white"><span className="text-[#A77BFF]">▣</span>2 出生资料 <span className="text-xs font-normal text-warmGray">｜用于提升分析准确度</span></h2>
         </div>
         <label className="block border-b border-white/10 px-4 py-3">
@@ -153,9 +154,9 @@ export function InputForm() {
               value={birthDate}
               onChange={(event) => setBirthDate(event.target.value)}
               placeholder="请选择出生年月日"
-              className="h-11 rounded-2xl border border-white/12 bg-white/8 px-4 text-[16px] text-white outline-none placeholder:text-warmGray/55 focus:border-[#FF67D8]/60"
+              className="ziwei-field-compact min-w-0"
             />
-            <div className="flex rounded-2xl border border-white/12 bg-white/8 p-1">
+            <div className="flex rounded-[22px] border border-[#6F35D8]/50 bg-[#190733]/78 p-1 shadow-[inset_0_0_18px_rgba(140,77,255,0.16)]">
               <button type="button" onClick={() => setCalendarType("solar")} className={`rounded-xl px-3 text-sm ${calendarType === "solar" ? "bg-[#6320C8] text-white" : "text-warmGray"}`}>阳历</button>
               <button type="button" onClick={() => setCalendarType("lunar")} className={`rounded-xl px-3 text-sm ${calendarType === "lunar" ? "bg-[#6320C8] text-white" : "text-warmGray"}`}>农历</button>
             </div>
@@ -167,7 +168,7 @@ export function InputForm() {
             value={birthTime}
             onChange={(event) => setBirthTime(event.target.value)}
             placeholder="请选择出生时间，不知道可填不确定"
-            className="h-11 w-full rounded-2xl border border-white/12 bg-white/8 px-4 text-[16px] text-white outline-none placeholder:text-warmGray/55 focus:border-[#FF67D8]/60"
+            className="ziwei-field"
           />
           <span className="mt-1 block text-xs leading-5 text-warmGray">不知道准确时间，可选择“不确定出生时间”。</span>
         </label>
@@ -177,24 +178,28 @@ export function InputForm() {
             value={birthCity}
             onChange={(event) => setBirthCity(event.target.value)}
             placeholder="请输入出生城市，例如：吉隆坡"
-            className="h-11 w-full rounded-2xl border border-white/12 bg-white/8 px-4 text-[16px] text-white outline-none placeholder:text-warmGray/55 focus:border-[#FF67D8]/60"
+            className="ziwei-field"
           />
         </label>
       </div>
 
-      <div className="overflow-hidden rounded-[22px] border border-[#7C3DFF]/45 bg-[#120A3A]/82 shadow-soft backdrop-blur">
-        <div className="border-b border-[#7C3DFF]/35 px-4 py-3">
+      <div className="ziwei-panel">
+        <div className="ziwei-panel-header">
           <h2 className="flex items-center gap-2 text-base font-semibold text-white"><span className="text-[#A77BFF]">◎</span>3 本次分析重点</h2>
         </div>
         <label className="block px-4 py-3">
           <span className="mb-2 block text-xs font-semibold text-warmGray">请选择你最想先了解的方向</span>
           <select
-            value={focus}
-            onChange={(event) => setFocus(event.target.value as Focus)}
-            className="h-11 w-full rounded-2xl border border-white/12 bg-white/8 px-4 text-[16px] text-white outline-none focus:border-[#FF67D8]/60"
+            value={focusDisplay}
+            onChange={(event) => {
+              const next = event.target.value;
+              setFocusDisplay(next);
+              setFocus((next === "人际" ? "整体" : next) as Focus);
+            }}
+            className="ziwei-field"
           >
             {["整体", "事业", "爱情", "财运", "人际", "家庭", "改名"].map((item) => (
-              <option key={item} value={item === "人际" ? "整体" : item}>{item === "改名" ? "是否需要改名" : item}</option>
+              <option key={item} value={item}>{item === "改名" ? "是否需要改名" : item}</option>
             ))}
           </select>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -202,8 +207,11 @@ export function InputForm() {
               <button
                 key={item}
                 type="button"
-                onClick={() => setFocus((item === "人际" ? "整体" : item) as Focus)}
-                className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs text-warmGray"
+                onClick={() => {
+                  setFocusDisplay(item);
+                  setFocus((item === "人际" ? "整体" : item) as Focus);
+                }}
+                className={`ziwei-chip ${focusDisplay === item ? "ziwei-chip-active" : ""}`}
               >
                 {item === "改名" ? "是否需要改名" : item}
               </button>
