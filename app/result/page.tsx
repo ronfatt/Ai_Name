@@ -96,6 +96,17 @@ export default function ResultPage() {
     );
   }
 
+  function unlockPaidPreview() {
+    if (!result) return;
+    const paidPreview = generateAnalysis({
+      ...result.userInput,
+      reportTier: "paid",
+      scriptType: result.userInput.scriptType || "traditional"
+    });
+    window.localStorage.setItem(storageKey, JSON.stringify(paidPreview));
+    setResult(paidPreview);
+  }
+
   return (
     <AppShell compact bottomInset>
       <div className="space-y-7 pb-4">
@@ -222,6 +233,15 @@ export default function ResultPage() {
                   {offer.tier === "paid" ? (
                     <>
                       <ListBlock title="付费后解锁" items={offer.lockedTeasers} />
+                      {result.funnelAnalysis.reportOffers.selectedTier !== "paid" ? (
+                        <button
+                          type="button"
+                          onClick={unlockPaidPreview}
+                          className="mt-4 min-h-12 w-full rounded-2xl border border-[#FF67D8]/45 bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-soft transition active:scale-[0.98]"
+                        >
+                          先免费预览付费版内容
+                        </button>
+                      ) : null}
                       <WhatsAppButton message={offer.whatsappMessage}>
                         {offer.cta}
                       </WhatsAppButton>
