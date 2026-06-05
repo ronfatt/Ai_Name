@@ -4,6 +4,10 @@ import type {
   DataConfidence,
   ElementName,
   NameAnalysisInput,
+  NameTimelineItem,
+  PainPointReport,
+  ProfessionalReview,
+  ScoreHook,
   SectionReport,
   TeacherConclusion,
   WhatsappSection,
@@ -514,7 +518,7 @@ function buildScore(input: NameAnalysisInput, chars: CharacterAnalysis[]): numbe
 }
 
 function applyZiweiScore(baseScore: number, scoreDelta: number): number {
-  return Math.min(92, Math.max(68, baseScore + Math.round(scoreDelta / 8)));
+  return Math.min(85, Math.max(60, baseScore - 8 + Math.round(scoreDelta / 10)));
 }
 
 function getPatternName(chars: CharacterAnalysis[], score: number, ziweiDelta = 0): string {
@@ -673,7 +677,7 @@ function buildWhatsappMessages(input: NameAnalysisInput, score: number): Record<
 
   return sections.reduce((acc, section) => {
     acc[section] = [
-      "老师你好，我刚刚做了姓名学初步分析。",
+      "Master Easy 你好，我刚通过 AI 系统测试了我的名字。",
       `姓名：${input.name}`,
       `生肖：${input.zodiac}`,
       input.birthDate ? `出生日期：${input.birthDate}` : "出生日期：未填写",
@@ -681,8 +685,9 @@ function buildWhatsappMessages(input: NameAnalysisInput, score: number): Record<
       input.birthCity ? `出生城市：${input.birthCity}` : "出生城市：未填写",
       `系统评分：${score}/100`,
       `我想进一步了解：${section === "整体" ? input.focus || "整体" : section}`,
+      "系统提示我的「情」和「财」或某些姓名能量需要进一步确认。",
       sectionText[section],
-      "我想请老师帮我确认出生时辰、命宫主星和姓名五格有没有真正配合，再判断这个名字是否适合我继续使用。"
+      "希望能获取完整报告，并预约您的专业咨询。"
     ].join("\n");
     return acc;
   }, {} as Record<WhatsappSection, string>);
@@ -708,8 +713,12 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
   const baseScore = buildScore(normalizedInput, characters);
   const score = applyZiweiScore(baseScore, metaphysics.ziweiNameMatch.scoreDelta);
   const patternName = getPatternName(characters, score, metaphysics.ziweiNameMatch.scoreDelta);
+  const scoreHook = buildScoreHook(score);
   const teacherConclusion = buildTeacherConclusion(score, metaphysics.ziweiNameMatch.scoreDelta, metaphysics);
   const dataConfidence = buildDataConfidence(normalizedInput);
+  const timeline = buildNameTimeline(characters);
+  const painPoints = buildPainPoints(normalizedInput, characters, metaphysics, score);
+  const professionalReview = buildProfessionalReview(normalizedInput, characters, dominant);
 
   const strengths = [
     dominant === "水" ? "感受力细腻，能察觉别人没说出口的情绪" : "责任感较强，遇到事情愿意先想办法承担",
@@ -733,8 +742,12 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
     userInput: normalizedInput,
     score,
     patternName,
+    scoreHook,
     teacherConclusion,
     dataConfidence,
+    timeline,
+    painPoints,
+    professionalReview,
     overall: {
       opening:
         "我先温和地跟你说，名字不是简单分成好或不好。新版会先以紫微斗数的命宫、迁移宫、官禄宫、财帛宫作为主轴，再用姓名五格去看名字是否补到你的命盘需要。生肖姓名学仍会保留，但它现在是辅助参考，不会单独决定结论。",
@@ -757,6 +770,105 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
     deeperQuestions: confirmations,
     whatsappMessages: buildWhatsappMessages(normalizedInput, score)
   };
+}
+
+function buildScoreHook(score: number): ScoreHook {
+  return {
+    score,
+    text: `您的名字综合得分为 ${score} 分。看似${score >= 78 ? "有一定助力" : "平稳"}，但在特定流年、人生阶段或关系场景里，仍可能藏着需要进一步确认的隐患。`
+  };
+}
+
+function buildNameTimeline(characters: CharacterAnalysis[]): NameTimelineItem[] {
+  const first = characters[0];
+  const second = characters[1] ?? characters[0];
+  const third = characters[2] ?? characters[1] ?? characters[0];
+
+  return [
+    {
+      title: "姓氏根基",
+      ageRange: "1-20岁",
+      char: first.char,
+      focus: "祖业 / 原生家庭 / 长辈缘",
+      text: `姓氏「${first.char}」先看早年家庭底色。它带${first.element}气，比较像你从家庭系统里带出来的习惯、期待和安全感模式。`
+    },
+    {
+      title: "名一主运",
+      ageRange: "21-40岁",
+      char: second.char,
+      focus: "事业拼搏 / 婚姻感情 / 当前压力",
+      text: `名字第一字「${second.char}」最容易对应事业拼搏、感情选择和对外表现。这个字如果和命宫、官禄宫有拉扯，就容易出现怀才不遇、关系沟通不顺或努力感偏重的阶段。`
+    },
+    {
+      title: "名二后劲",
+      ageRange: "41岁以后",
+      char: third.char,
+      focus: "财富累积 / 子息缘 / 晚年稳定",
+      text: `名字后段「${third.char}」看中后期的财富、关系和后劲。若前一阶段的问题没有被整理，后期可能比较像有成果但守得辛苦，需要进一步看总格和财帛宫。`
+    }
+  ];
+}
+
+function buildPainPoints(
+  input: NameAnalysisInput,
+  characters: CharacterAnalysis[],
+  metaphysics: ReturnType<typeof buildMetaphysicsProfile>,
+  score: number
+): PainPointReport[] {
+  const businessRule = metaphysics.ziweiNameMatch.rules.find((rule) => rule.title.includes("官禄宫"));
+  const relationRule = metaphysics.ziweiNameMatch.rules.find((rule) => rule.title.includes("迁移宫"));
+  const wealthRule = metaphysics.ziweiNameMatch.rules.find((rule) => rule.title.includes("财帛宫"));
+  const hasConflictRoot = metaphysics.ziweiNameMatch.scoreDelta < 0 || score < 72;
+
+  return [
+    {
+      title: "名：事业与贵人",
+      score: clampPainScore(score + (businessRule?.scoreDelta ?? 0) / 3),
+      riskLevel: (businessRule?.scoreDelta ?? 0) < 0 ? "需老师确认" : "需留意",
+      text: `${businessRule?.text ?? "事业宫位需要结合姓名人格进一步确认。"} 这类组合初步看，可能不是没有能力，而是机会、贵人或表达节奏没有完全对上。`,
+      withheldHint: "事业真正卡在方向、贵人还是名字能量，需要结合完整命盘继续拆。"
+    },
+    {
+      title: "情：感情与婚姻",
+      score: clampPainScore(score + (relationRule?.scoreDelta ?? 0) / 3 - (input.gender === "女" ? 1 : 0)),
+      riskLevel: (relationRule?.scoreDelta ?? 0) < 0 || hasGenderSensitiveShape(input.gender, characters) ? "需老师确认" : "需留意",
+      text: `${relationRule?.text ?? "感情需要看命宫、迁移宫和姓名人格之间的互动。"} 名字里若带过强的孤立、克制或不易表达之象，感情上比较容易出现想很多、忍很多或沟通卡住的情况。`,
+      withheldHint: "是否属于男女忌用字或感情宫位冲克，需老师结合性别和完整姓名进一步判断。"
+    },
+    {
+      title: "财：财富与守财",
+      score: clampPainScore(score + (wealthRule?.scoreDelta ?? 0) / 3 - (hasConflictRoot ? 3 : 0)),
+      riskLevel: (wealthRule?.scoreDelta ?? 0) < 0 || hasConflictRoot ? "需老师确认" : "平稳",
+      text: `${wealthRule?.text ?? "财帛宫需要和总格一起看。"} 若生肖字根或姓名结构有暗耗，初步会像收入有机会，但守财、累积或长期稳定仍需细看。`,
+      withheldHint: "财运漏口不能只看一个字，需要把财帛宫、总格、生肖冲合一起判断。"
+    }
+  ];
+}
+
+function buildProfessionalReview(input: NameAnalysisInput, characters: CharacterAnalysis[], dominant: ElementName): ProfessionalReview {
+  const hasRare = characters.some((character) => !/^[\u4E00-\u9FFF]$/.test(character.char));
+  const repeatedElement = characters.filter((character) => character.element === dominant).length >= 2;
+
+  return {
+    rareCharacter: hasRare
+      ? "名字里可能含有较少见或系统难拆的字，人际流通、文件识别和口头介绍都需要进一步确认。"
+      : "名字用字流通度初步平稳，没有明显生僻到难以辨识的结构。",
+    pronunciation: "字音初步读起来没有明显断裂感，但是否有方言谐音、行业场景误读，仍建议由老师人工复核。",
+    meaning: "字义能量偏向责任、表达与后期累积；若长期处在压力环境，名字可能会放大承担感。",
+    shape: repeatedElement
+      ? `字形五行以${dominant}气偏明显，优点是方向集中，提醒是容易某一类能量过重。`
+      : "字形五行有一定变化，需看是否真正补到八字喜用和紫微核心宫位。",
+    authorityNote: "紫微易名学不是只算笔画，而是把姓名五格、生肖字根、命宫主星、迁移宫人际、官禄财帛走势一起做交叉判断。"
+  };
+}
+
+function clampPainScore(value: number): number {
+  return Math.round(Math.min(85, Math.max(60, value)));
+}
+
+function hasGenderSensitiveShape(gender: NameAnalysisInput["gender"], characters: CharacterAnalysis[]): boolean {
+  const sensitiveParts = gender === "女" ? ["孤", "寡", "刀", "刂", "破"] : ["弱", "困", "囚", "厄"];
+  return characters.some((character) => sensitiveParts.some((part) => character.char.includes(part)));
 }
 
 function buildTeacherConclusion(

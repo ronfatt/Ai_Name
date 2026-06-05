@@ -37,7 +37,11 @@ export default function ResultPage() {
           !parsed.ziweiChart ||
           !parsed.ziweiNameMatch ||
           !parsed.teacherConclusion ||
-          !parsed.dataConfidence) &&
+          !parsed.dataConfidence ||
+          !parsed.scoreHook ||
+          !parsed.timeline ||
+          !parsed.painPoints ||
+          !parsed.professionalReview) &&
         parsed.userInput?.name &&
         parsed.userInput?.zodiac
       ) {
@@ -52,6 +56,10 @@ export default function ResultPage() {
           ziweiNameMatch: parsed.ziweiNameMatch ?? latest.ziweiNameMatch,
           teacherConclusion: parsed.teacherConclusion ?? latest.teacherConclusion,
           dataConfidence: parsed.dataConfidence ?? latest.dataConfidence,
+          scoreHook: parsed.scoreHook ?? latest.scoreHook,
+          timeline: parsed.timeline ?? latest.timeline,
+          painPoints: parsed.painPoints ?? latest.painPoints,
+          professionalReview: parsed.professionalReview ?? latest.professionalReview,
           zodiacName: {
             ...latest.zodiacName,
             ...parsed.zodiacName,
@@ -95,6 +103,16 @@ export default function ResultPage() {
           <p className="text-sm leading-7 text-warmGray">{result.overall.opening}</p>
         </ResultCard>
 
+        <ResultCard title="综合吉凶评分">
+          <div className="space-y-4 text-sm leading-7 text-warmGray">
+            <div className="rounded-2xl border border-[#FF67D8]/35 bg-[#6423D2]/20 p-4">
+              <p className="text-xs font-semibold text-gold">The Hook</p>
+              <p className="mt-1 text-4xl font-semibold text-white">{result.scoreHook.score}<span className="text-base text-warmGray"> / 100</span></p>
+            </div>
+            <p>{result.scoreHook.text}</p>
+          </div>
+        </ResultCard>
+
         <ResultCard title="老师初步判断">
           <div className="space-y-4 text-sm leading-7 text-warmGray">
             <div className="rounded-2xl border border-[#FF67D8]/35 bg-[#6423D2]/20 p-4">
@@ -120,6 +138,47 @@ export default function ResultPage() {
         </ResultCard>
 
         <ScoreCard score={result.score} patternName={result.patternName} />
+
+        <ResultCard title="姓名三才时间轴">
+          <div className="space-y-3">
+            {result.timeline.map((item) => (
+              <div key={`${item.title}-${item.char}`} className="rounded-2xl border border-white/12 bg-white/10 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-base font-semibold text-white">{item.title}｜{item.char}</p>
+                    <p className="mt-1 text-xs text-gold">{item.ageRange} · {item.focus}</p>
+                  </div>
+                </div>
+                <p className="mt-3 text-sm leading-7 text-warmGray">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </ResultCard>
+
+        <ResultCard title="名、情、财三大诊断">
+          <div className="space-y-3">
+            {result.painPoints.map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/12 bg-white/10 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold text-white">{item.title}</p>
+                  <TagBadge>{item.score}分 · {item.riskLevel}</TagBadge>
+                </div>
+                <p className="mt-3 text-sm leading-7 text-warmGray">{item.text}</p>
+                <p className="mt-3 rounded-2xl border border-[#FF67D8]/25 bg-[#6423D2]/15 px-4 py-3 text-xs leading-6 text-white">{item.withheldHint}</p>
+              </div>
+            ))}
+          </div>
+        </ResultCard>
+
+        <ResultCard title="姓名专业点评">
+          <div className="space-y-3 text-sm leading-7 text-warmGray">
+            <p><span className="font-semibold text-gold">生僻字：</span>{result.professionalReview.rareCharacter}</p>
+            <p><span className="font-semibold text-gold">字音：</span>{result.professionalReview.pronunciation}</p>
+            <p><span className="font-semibold text-gold">字义：</span>{result.professionalReview.meaning}</p>
+            <p><span className="font-semibold text-gold">字形：</span>{result.professionalReview.shape}</p>
+            <p className="rounded-2xl border border-white/12 bg-white/10 p-4 text-white">{result.professionalReview.authorityNote}</p>
+          </div>
+        </ResultCard>
 
         <ResultCard title="紫微命盘与姓名五格">
           <div className="space-y-4 text-sm leading-7 text-warmGray">
@@ -265,9 +324,9 @@ export default function ResultPage() {
 
         <ResultCard title="你的名字还有更深一层没有被打开">
           <p className="text-sm leading-7 text-warmGray">
-            这份分析只是先把名字和命盘的初步关系拆给你看。真正要判断这个名字是否适合继续使用、是否需要调整，还是要结合出生时辰校正、现实处境和目前最卡的事情一起看。你不需要马上做决定，可以先让老师帮你确认：这个名字是在帮你，还是有些地方正在消耗你。
+            AI 基础分析仅能揭示表层信息。名字的五行生克是否真正契合你的八字命理，当前的财运漏口、感情沟通卡点或事业贵人问题，仍需要 Master Easy 结合完整命盘进一步确认。
           </p>
-          <WhatsAppButton message={result.whatsappMessages["整体"]}>把我的命盘姓名报告发给老师</WhatsAppButton>
+          <WhatsAppButton message={result.whatsappMessages["整体"]}>点击获取完整版 15 页深度解析报告 & 预约易玺师傅一对一专业测名</WhatsAppButton>
           <LeadCapture />
         </ResultCard>
 

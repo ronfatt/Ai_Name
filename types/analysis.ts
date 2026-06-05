@@ -87,6 +87,35 @@ export interface DataConfidence {
   note: string;
 }
 
+export interface ScoreHook {
+  score: number;
+  text: string;
+}
+
+export interface NameTimelineItem {
+  title: string;
+  ageRange: string;
+  char: string;
+  focus: string;
+  text: string;
+}
+
+export interface PainPointReport {
+  title: "名：事业与贵人" | "情：感情与婚姻" | "财：财富与守财";
+  score: number;
+  riskLevel: "平稳" | "需留意" | "需老师确认";
+  text: string;
+  withheldHint: string;
+}
+
+export interface ProfessionalReview {
+  rareCharacter: string;
+  pronunciation: string;
+  meaning: string;
+  shape: string;
+  authorityNote: string;
+}
+
 export type WhatsappSection = "家庭" | "事业" | "爱情" | "整体";
 
 export interface FiveGridItem {
@@ -172,8 +201,12 @@ export interface AnalysisResult {
   userInput: NameAnalysisInput;
   score: number;
   patternName: string;
+  scoreHook: ScoreHook;
   teacherConclusion: TeacherConclusion;
   dataConfidence: DataConfidence;
+  timeline: NameTimelineItem[];
+  painPoints: PainPointReport[];
+  professionalReview: ProfessionalReview;
   overall: OverallAnalysis;
   characters: CharacterAnalysis[];
   fiveGrid: FiveGridAnalysis;
