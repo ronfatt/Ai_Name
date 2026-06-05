@@ -7,7 +7,6 @@ import { CharacterCard } from "@/components/CharacterCard";
 import { FloatingWhatsAppBar } from "@/components/FloatingWhatsAppBar";
 import { LeadCapture } from "@/components/LeadCapture";
 import { ResultCard } from "@/components/ResultCard";
-import { ScoreCard } from "@/components/ScoreCard";
 import { SectionReportCard } from "@/components/SectionReportCard";
 import { ShareUnlockCard } from "@/components/ShareUnlockCard";
 import { TagBadge } from "@/components/TagBadge";
@@ -107,6 +106,10 @@ export default function ResultPage() {
     setResult(paidPreview);
   }
 
+  const primaryPain = getPrimaryPain(result);
+  const primaryTimeline = getPrimaryTimeline(result, primaryPain);
+  const topEvidence = buildTopEvidence(result, primaryPain);
+
   return (
     <AppShell compact bottomInset>
       <div className="space-y-7 pb-4">
@@ -120,65 +123,42 @@ export default function ResultPage() {
           </div>
         </section>
 
-        <ResultCard title="老师先温和地跟你说">
-          <p className="text-sm leading-7 text-warmGray">{result.overall.opening}</p>
-        </ResultCard>
-
-        <ResultCard title="综合吉凶评分">
-          <div className="space-y-4 text-sm leading-7 text-warmGray">
-            <div className="rounded-2xl border border-[#FF67D8]/35 bg-[#6423D2]/20 p-4">
-              <p className="text-xs font-semibold text-gold">The Hook</p>
-              <p className="mt-1 text-4xl font-semibold text-white">{result.scoreHook.score}<span className="text-base text-warmGray"> / 100</span></p>
-            </div>
-            <p>{result.scoreHook.text}</p>
-          </div>
-        </ResultCard>
-
-        <ResultCard title="老师初步判断">
-          <div className="space-y-4 text-sm leading-7 text-warmGray">
-            <div className="rounded-2xl border border-[#FF67D8]/35 bg-[#6423D2]/20 p-4">
-              <p className="text-xs font-semibold text-gold">这个名字目前偏向</p>
-              <p className="mt-1 text-2xl font-semibold text-white">{result.teacherConclusion.verdict}</p>
-            </div>
-            <p><span className="font-semibold text-gold">最大助力：</span>{result.teacherConclusion.biggestSupport}</p>
-            <p><span className="font-semibold text-gold">最大卡点：</span>{result.teacherConclusion.biggestBlock}</p>
-            <p><span className="font-semibold text-gold">最需要确认：</span>{result.teacherConclusion.mustConfirm}</p>
-            <p className="rounded-2xl border border-white/12 bg-white/10 p-4 text-white">{result.teacherConclusion.shortAdvice}</p>
-          </div>
-        </ResultCard>
-
-        <ResultCard title="命盘资料可信度" subtle>
-          <div className="space-y-4 text-sm leading-7 text-warmGray">
-            <div className="flex flex-wrap gap-2">
-              <TagBadge>资料完整度 {result.dataConfidence.level}</TagBadge>
-              <TagBadge>{result.dataConfidence.needsTimeCalibration ? "需要老师校时" : "可初步排盘"}</TagBadge>
-            </div>
-            <ListBlock title="" items={result.dataConfidence.items.slice(0, 4)} />
-            <p>{result.dataConfidence.note}</p>
-          </div>
-        </ResultCard>
-
-        <ScoreCard score={result.score} patternName={result.patternName} />
-
-        <ResultCard title="姓名三才时间轴">
-          <div className="space-y-3">
-            {result.timeline.map((item) => (
-              <div key={`${item.title}-${item.char}`} className="rounded-2xl border border-white/12 bg-white/10 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-base font-semibold text-white">{item.title}｜{item.char}</p>
-                    <p className="mt-1 text-xs text-gold">{item.ageRange} · {item.focus}</p>
-                  </div>
+        <ResultCard title="先看结论">
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-[#FF67D8]/35 bg-[#6423D2]/20 p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold text-gold">综合分数</p>
+                  <p className="mt-1 text-4xl font-semibold text-white">{result.score}<span className="text-base text-warmGray"> / 100</span></p>
                 </div>
-                <p className="mt-3 text-sm leading-7 text-warmGray">{item.text}</p>
+                <TagBadge>{trafficLight(primaryPain.riskLevel).dot} {primaryPain.score}分</TagBadge>
               </div>
-            ))}
+              <h2 className="mt-4 text-2xl font-semibold leading-snug text-white">
+                你的名字不是没运，而是「{formatPainTitle(primaryPain.title).split("｜")[1]}」比较需要细看。
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-warmGray">
+                目前最明显的卡点落在 {primaryTimeline.title}（{primaryTimeline.ageRange}）。免费版先帮你看见问题，不会一次把完整判断和调整方向全部摊开。
+              </p>
+            </div>
+
+            <div className="grid gap-3">
+              {topEvidence.map((item) => (
+                <div key={item.title} className="rounded-2xl border border-white/12 bg-white/10 p-4">
+                  <p className="text-sm font-semibold text-gold">{item.title}</p>
+                  <p className="mt-2 text-sm leading-7 text-warmGray">{item.text}</p>
+                </div>
+              ))}
+            </div>
+
+            <WhatsAppButton message={result.funnelAnalysis.reportOffers.paid.whatsappMessage} variant="soft">
+              我想直接看完整 15 页深度报告
+            </WhatsAppButton>
           </div>
         </ResultCard>
 
-        <ResultCard title="名、情、财三大诊断">
+        <ResultCard title="你的红灯区域">
           <div className="space-y-3">
-            {result.painPoints.map((item) => (
+            {[primaryPain, ...result.painPoints.filter((item) => item.title !== primaryPain.title)].map((item, index) => (
               <div key={item.title} className="rounded-2xl border border-white/12 bg-white/10 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -187,7 +167,13 @@ export default function ResultPage() {
                   </div>
                   <TagBadge>{trafficLight(item.riskLevel).dot} {item.score}分</TagBadge>
                 </div>
-                <p className="mt-3 text-sm leading-7 text-warmGray">{item.text}</p>
+                {index === 0 ? (
+                  <p className="mt-3 text-sm leading-7 text-warmGray">{item.text}</p>
+                ) : (
+                  <p className="mt-3 text-sm leading-7 text-warmGray">
+                    这块先保留为辅助参考。免费版重点先看最明显的红灯区域，完整报告才会逐层拆开。
+                  </p>
+                )}
                 {item.title === "财：财富与守财" && result.funnelAnalysis.reportOffers.selectedTier === "free" ? (
                   <div className="relative mt-3 overflow-hidden rounded-2xl border border-[#FF67D8]/25 bg-[#6423D2]/15 px-4 py-4">
                     <p className="text-xs leading-6 text-white">
@@ -208,47 +194,38 @@ export default function ResultPage() {
           </div>
         </ResultCard>
 
-        <ResultCard title="选择你的报告版本">
+        <ResultCard title="解锁完整报告">
           <div className="space-y-4 text-sm leading-7 text-warmGray">
-            <p>{result.funnelAnalysis.reportOffers.upgradeReason}</p>
-            <div className="grid gap-3">
-              {[result.funnelAnalysis.reportOffers.free, result.funnelAnalysis.reportOffers.paid].map((offer) => (
-                <div
-                  key={offer.tier}
-                  className={`rounded-3xl border p-4 ${
-                    offer.tier === "paid"
-                      ? "border-[#FF67D8]/45 bg-[#6423D2]/20 shadow-[0_0_30px_rgba(255,103,216,0.16)]"
-                      : "border-white/12 bg-white/10"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-base font-semibold text-white">{offer.title}</p>
-                      <p className="mt-1 text-xs font-semibold text-gold">{offer.pageCount}｜{offer.priceLabel}</p>
-                    </div>
-                    <TagBadge>{offer.tier === result.funnelAnalysis.reportOffers.selectedTier ? "已选择" : "可选"}</TagBadge>
-                  </div>
-                  <p className="mt-3 text-xs leading-6">{offer.goal}</p>
-                  <ListBlock title="包含内容" items={offer.includes.slice(0, 3)} />
-                  {offer.tier === "paid" ? (
-                    <>
-                      <ListBlock title="付费后解锁" items={offer.lockedTeasers} />
-                      {result.funnelAnalysis.reportOffers.selectedTier !== "paid" ? (
-                        <button
-                          type="button"
-                          onClick={unlockPaidPreview}
-                          className="mt-4 min-h-12 w-full rounded-2xl border border-[#FF67D8]/45 bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-soft transition active:scale-[0.98]"
-                        >
-                          先免费预览付费版内容
-                        </button>
-                      ) : null}
-                      <WhatsAppButton message={offer.whatsappMessage}>
-                        {offer.cta}
-                      </WhatsAppButton>
-                    </>
-                  ) : null}
+            <div className="rounded-3xl border border-[#FF67D8]/45 bg-[#6423D2]/20 p-5 shadow-[0_0_30px_rgba(255,103,216,0.16)]">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-lg font-semibold text-white">15页紫微姓名学深度诊断书</p>
+                  <p className="mt-1 text-xs font-semibold text-gold">完整拆解命宫、名一、名二、财库与流年</p>
                 </div>
-              ))}
+                <TagBadge>{result.funnelAnalysis.reportOffers.selectedTier === "paid" ? "已解锁" : "锁定"}</TagBadge>
+              </div>
+              <p className="mt-3 text-sm leading-7 text-warmGray">
+                免费版只先指出「{formatPainTitle(primaryPain.title).split("｜")[1]}」这个最大卡点；完整报告会把背后的紫微主星、三才时间轴、生肖字根和字形音义一次看清楚。
+              </p>
+              <div className="mt-4 grid gap-2">
+                {result.funnelAnalysis.reportOffers.paid.lockedTeasers.slice(0, 3).map((item) => (
+                  <p key={item} className="rounded-2xl border border-white/12 bg-white/10 px-4 py-3 text-xs leading-6 text-warmGray">
+                    {result.funnelAnalysis.reportOffers.selectedTier === "paid" ? "已开放" : "锁定"}｜{item}
+                  </p>
+                ))}
+              </div>
+              {result.funnelAnalysis.reportOffers.selectedTier !== "paid" ? (
+                <button
+                  type="button"
+                  onClick={unlockPaidPreview}
+                  className="mt-4 min-h-12 w-full rounded-2xl border border-[#FF67D8]/45 bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-soft transition active:scale-[0.98]"
+                >
+                  先免费预览完整报告
+                </button>
+              ) : null}
+              <WhatsAppButton message={result.funnelAnalysis.reportOffers.paid.whatsappMessage}>
+                WhatsApp 领取 15 页报告
+              </WhatsAppButton>
             </div>
           </div>
         </ResultCard>
@@ -285,16 +262,6 @@ export default function ResultPage() {
               <TagBadge>提醒强度 {result.funnelAnalysis.annualWarning.urgency}</TagBadge>
             </div>
             <p>{result.funnelAnalysis.annualWarning.text}</p>
-          </div>
-        </ResultCard>
-
-        <ResultCard title="同频案例参考">
-          <div className="space-y-3 text-sm leading-7 text-warmGray">
-            <p className="text-base font-semibold text-white">{result.funnelAnalysis.authorityProof.title}</p>
-            <p>{result.funnelAnalysis.authorityProof.text}</p>
-            <p className="rounded-2xl border border-[#FF67D8]/25 bg-[#6423D2]/15 px-4 py-3 text-white">
-              {result.funnelAnalysis.authorityProof.ctaAngle}
-            </p>
           </div>
         </ResultCard>
 
@@ -507,10 +474,6 @@ export default function ResultPage() {
           <p className="text-sm leading-7 text-warmGray">{result.summary}</p>
         </ResultCard>
 
-        <ResultCard title="需要进一步确认的重点">
-          <ListBlock title="" items={result.deeperQuestions} />
-        </ResultCard>
-
         <ResultCard title="你的名字还有更深一层没有被打开">
           <p className="text-sm leading-7 text-warmGray">
             想要了解如何缝合财库漏口、稳住情缘宫位或放大事业品牌磁场，免费版只能先指出表层卡点。完整 15 页深度解析会进一步拆解你的命宫、迁移宫、三才时间轴、生肖字根与流年提醒，再由 Master Easy / 易玺师傅做一对一确认。
@@ -566,4 +529,40 @@ function trafficLight(riskLevel: AnalysisResult["painPoints"][number]["riskLevel
   if (riskLevel === "需老师确认") return { dot: "红灯", label: "高敏感区域｜建议老师细看" };
   if (riskLevel === "需留意") return { dot: "黄灯", label: "中度提醒｜需要进一步确认" };
   return { dot: "绿灯", label: "初步平稳｜仍需看完整命盘" };
+}
+
+function getPrimaryPain(result: AnalysisResult): AnalysisResult["painPoints"][number] {
+  return [...result.painPoints].sort((a, b) => {
+    const severityA = a.riskLevel === "需老师确认" ? 0 : a.riskLevel === "需留意" ? 1 : 2;
+    const severityB = b.riskLevel === "需老师确认" ? 0 : b.riskLevel === "需留意" ? 1 : 2;
+    if (severityA !== severityB) return severityA - severityB;
+    return a.score - b.score;
+  })[0] ?? result.painPoints[0];
+}
+
+function getPrimaryTimeline(result: AnalysisResult, pain: AnalysisResult["painPoints"][number]): AnalysisResult["timeline"][number] {
+  if (pain.title.startsWith("财")) return result.timeline[2] ?? result.timeline[0];
+  if (pain.title.startsWith("名") || pain.title.startsWith("情")) return result.timeline[1] ?? result.timeline[0];
+  return result.timeline[0];
+}
+
+function buildTopEvidence(result: AnalysisResult, pain: AnalysisResult["painPoints"][number]): Array<{ title: string; text: string }> {
+  const crossCheck = result.funnelAnalysis.ziweiStarNaming.crossChecks[0];
+  const timeline = getPrimaryTimeline(result, pain);
+  return [
+    {
+      title: "证据 1｜三才时间轴",
+      text: `${timeline.title} 对应 ${timeline.ageRange}，系统把这一段视为你目前最需要确认的人生角色。${timeline.text}`
+    },
+    {
+      title: "证据 2｜紫微主星与现用名",
+      text: crossCheck
+        ? `${crossCheck.triggerLabel}：${crossCheck.safeWarning}`
+        : result.funnelAnalysis.ziweiStarNaming.mismatchWarning
+    },
+    {
+      title: "证据 3｜名情财红绿灯",
+      text: `${formatPainTitle(pain.title)} 目前是 ${trafficLight(pain.riskLevel).label}，系统评分 ${pain.score}/100。${pain.withheldHint}`
+    }
+  ];
 }
