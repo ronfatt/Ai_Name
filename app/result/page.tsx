@@ -9,6 +9,7 @@ import { LeadCapture } from "@/components/LeadCapture";
 import { ResultCard } from "@/components/ResultCard";
 import { ScoreCard } from "@/components/ScoreCard";
 import { SectionReportCard } from "@/components/SectionReportCard";
+import { ShareUnlockCard } from "@/components/ShareUnlockCard";
 import { TagBadge } from "@/components/TagBadge";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { generateAnalysis } from "@/lib/report/generateAnalysis";
@@ -38,6 +39,9 @@ export default function ResultPage() {
           !parsed.ziweiNameMatch ||
           !parsed.teacherConclusion ||
           !parsed.dataConfidence ||
+          !parsed.funnelAnalysis ||
+          !parsed.funnelAnalysis.reportOffers ||
+          !parsed.funnelAnalysis.viralUnlock ||
           !parsed.scoreHook ||
           !parsed.timeline ||
           !parsed.painPoints ||
@@ -56,6 +60,12 @@ export default function ResultPage() {
           ziweiNameMatch: parsed.ziweiNameMatch ?? latest.ziweiNameMatch,
           teacherConclusion: parsed.teacherConclusion ?? latest.teacherConclusion,
           dataConfidence: parsed.dataConfidence ?? latest.dataConfidence,
+          funnelAnalysis: {
+            ...latest.funnelAnalysis,
+            ...parsed.funnelAnalysis,
+            reportOffers: parsed.funnelAnalysis?.reportOffers ?? latest.funnelAnalysis.reportOffers,
+            viralUnlock: parsed.funnelAnalysis?.viralUnlock ?? latest.funnelAnalysis.viralUnlock
+          },
           scoreHook: parsed.scoreHook ?? latest.scoreHook,
           timeline: parsed.timeline ?? latest.timeline,
           painPoints: parsed.painPoints ?? latest.painPoints,
@@ -160,14 +170,131 @@ export default function ResultPage() {
             {result.painPoints.map((item) => (
               <div key={item.title} className="rounded-2xl border border-white/12 bg-white/10 p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold text-white">{item.title}</p>
-                  <TagBadge>{item.score}分 · {item.riskLevel}</TagBadge>
+                  <div>
+                    <p className="font-semibold text-white">{formatPainTitle(item.title)}</p>
+                    <p className="mt-1 text-xs text-gold">{trafficLight(item.riskLevel).label}</p>
+                  </div>
+                  <TagBadge>{trafficLight(item.riskLevel).dot} {item.score}分</TagBadge>
                 </div>
                 <p className="mt-3 text-sm leading-7 text-warmGray">{item.text}</p>
-                <p className="mt-3 rounded-2xl border border-[#FF67D8]/25 bg-[#6423D2]/15 px-4 py-3 text-xs leading-6 text-white">{item.withheldHint}</p>
+                {item.title === "财：财富与守财" && result.funnelAnalysis.reportOffers.selectedTier === "free" ? (
+                  <div className="relative mt-3 overflow-hidden rounded-2xl border border-[#FF67D8]/25 bg-[#6423D2]/15 px-4 py-4">
+                    <p className="text-xs leading-6 text-white">
+                      系统检测到 41 岁后财库守卫仍有一处需要深拆的节点…
+                    </p>
+                    <div className="mt-3 select-none space-y-2 blur-[3px]">
+                      <p className="h-3 rounded-full bg-white/35" />
+                      <p className="h-3 w-5/6 rounded-full bg-white/25" />
+                      <p className="h-3 w-2/3 rounded-full bg-white/20" />
+                    </div>
+                    <p className="mt-4 text-xs font-semibold text-gold">完整财库拆解已锁定在 15 页深度报告</p>
+                  </div>
+                ) : (
+                  <p className="mt-3 rounded-2xl border border-[#FF67D8]/25 bg-[#6423D2]/15 px-4 py-3 text-xs leading-6 text-white">{item.withheldHint}</p>
+                )}
               </div>
             ))}
           </div>
+        </ResultCard>
+
+        <ResultCard title="选择你的报告版本">
+          <div className="space-y-4 text-sm leading-7 text-warmGray">
+            <p>{result.funnelAnalysis.reportOffers.upgradeReason}</p>
+            <div className="grid gap-3">
+              {[result.funnelAnalysis.reportOffers.free, result.funnelAnalysis.reportOffers.paid].map((offer) => (
+                <div
+                  key={offer.tier}
+                  className={`rounded-3xl border p-4 ${
+                    offer.tier === "paid"
+                      ? "border-[#FF67D8]/45 bg-[#6423D2]/20 shadow-[0_0_30px_rgba(255,103,216,0.16)]"
+                      : "border-white/12 bg-white/10"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-base font-semibold text-white">{offer.title}</p>
+                      <p className="mt-1 text-xs font-semibold text-gold">{offer.pageCount}｜{offer.priceLabel}</p>
+                    </div>
+                    <TagBadge>{offer.tier === result.funnelAnalysis.reportOffers.selectedTier ? "已选择" : "可选"}</TagBadge>
+                  </div>
+                  <p className="mt-3 text-xs leading-6">{offer.goal}</p>
+                  <ListBlock title="包含内容" items={offer.includes.slice(0, 3)} />
+                  {offer.tier === "paid" ? (
+                    <>
+                      <ListBlock title="付费后解锁" items={offer.lockedTeasers} />
+                      <WhatsAppButton message={offer.whatsappMessage}>
+                        {offer.cta}
+                      </WhatsAppButton>
+                    </>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        </ResultCard>
+
+        <ShareUnlockCard offer={result.funnelAnalysis.viralUnlock} />
+
+        <ResultCard title="五行能量雷达图">
+          <div className="space-y-4">
+            <div className="grid gap-3">
+              {result.funnelAnalysis.energyRadar.points.map((point) => (
+                <div key={point.element} className="rounded-2xl border border-white/12 bg-white/10 px-4 py-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-white">{point.element}｜{point.label}</p>
+                    <span className="text-xs font-semibold text-gold">{point.score}%</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-[#FF67D8] via-[#C83BFF] to-[#29B6FF]"
+                      style={{ width: `${point.score}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-sm leading-7 text-warmGray">{result.funnelAnalysis.energyRadar.insight}</p>
+          </div>
+        </ResultCard>
+
+        <ResultCard title={result.funnelAnalysis.annualWarning.title} subtle>
+          <div className="space-y-3 text-sm leading-7 text-warmGray">
+            <div className="flex flex-wrap gap-2">
+              <TagBadge>{result.funnelAnalysis.annualWarning.stemBranch}年</TagBadge>
+              <TagBadge>太岁 {result.funnelAnalysis.annualWarning.zodiac}</TagBadge>
+              <TagBadge>提醒强度 {result.funnelAnalysis.annualWarning.urgency}</TagBadge>
+            </div>
+            <p>{result.funnelAnalysis.annualWarning.text}</p>
+          </div>
+        </ResultCard>
+
+        <ResultCard title="同频案例参考">
+          <div className="space-y-3 text-sm leading-7 text-warmGray">
+            <p className="text-base font-semibold text-white">{result.funnelAnalysis.authorityProof.title}</p>
+            <p>{result.funnelAnalysis.authorityProof.text}</p>
+            <p className="rounded-2xl border border-[#FF67D8]/25 bg-[#6423D2]/15 px-4 py-3 text-white">
+              {result.funnelAnalysis.authorityProof.ctaAngle}
+            </p>
+          </div>
+        </ResultCard>
+
+        <ResultCard title="专属姓名诊断海报">
+          <div className="space-y-4">
+            <div className="rounded-[28px] border border-[#FF67D8]/30 bg-[radial-gradient(circle_at_top_right,rgba(255,103,216,0.25),transparent_36%),linear-gradient(135deg,rgba(24,9,61,0.9),rgba(86,18,139,0.55))] p-5 shadow-[0_0_34px_rgba(200,59,255,0.22)]">
+              <p className="text-xs text-gold">可分享预览</p>
+              <h3 className="mt-2 text-2xl font-semibold leading-tight text-white">{result.funnelAnalysis.sharePoster.headline}</h3>
+              <p className="mt-2 text-sm text-warmGray">{result.funnelAnalysis.sharePoster.scoreLine}</p>
+              <p className="mt-5 text-lg font-semibold leading-8 text-white">“{result.funnelAnalysis.sharePoster.quote}”</p>
+              <div className="mt-5 rounded-2xl border border-white/12 bg-white/10 p-3 text-xs leading-5 text-warmGray">
+                扫码可回到这份姓名初诊报告
+              </div>
+            </div>
+            <p className="text-xs leading-6 text-warmGray">{result.funnelAnalysis.sharePoster.visualStyle}</p>
+          </div>
+        </ResultCard>
+
+        <ResultCard title={result.funnelAnalysis.partnerCompatibility.title} subtle>
+          <p className="text-sm leading-7 text-warmGray">{result.funnelAnalysis.partnerCompatibility.text}</p>
         </ResultCard>
 
         <ResultCard title="姓名专业点评">
@@ -209,6 +336,48 @@ export default function ResultPage() {
               ))}
             </div>
             <ListBlock title="命名互证规则" items={result.ziweiNameMatch.rules.slice(0, 3).map((rule) => `${rule.title}：${rule.text}`)} />
+          </div>
+        </ResultCard>
+
+        <ResultCard title="天命星曜与现用名契合度">
+          <div className="space-y-4 text-sm leading-7 text-warmGray">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-2xl border border-white/12 bg-white/10 p-4">
+                <p className="text-xs font-semibold text-gold">命宫主星</p>
+                <p className="mt-1 text-xl font-semibold text-white">{result.funnelAnalysis.ziweiStarNaming.lifeStar}</p>
+                <p className="mt-1 text-xs">{result.funnelAnalysis.ziweiStarNaming.lifeArchetype}</p>
+              </div>
+              <div className="rounded-2xl border border-white/12 bg-white/10 p-4">
+                <p className="text-xs font-semibold text-gold">迁移宫主星</p>
+                <p className="mt-1 text-xl font-semibold text-white">{result.funnelAnalysis.ziweiStarNaming.migrationStar}</p>
+                <p className="mt-1 text-xs">{result.funnelAnalysis.ziweiStarNaming.migrationArchetype}</p>
+              </div>
+            </div>
+            <p>{result.funnelAnalysis.ziweiStarNaming.nameDirection}</p>
+            <p>{result.funnelAnalysis.ziweiStarNaming.personalBrandDirection}</p>
+            <p className="rounded-2xl border border-[#FF67D8]/25 bg-[#6423D2]/15 p-4 text-white">
+              {result.funnelAnalysis.ziweiStarNaming.mismatchWarning}
+            </p>
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-gold">主星 × 姓名交叉验证</h3>
+              {result.funnelAnalysis.ziweiStarNaming.crossChecks.map((item) => (
+                <div key={`${item.triggerLabel}-${item.affectedArea}`} className="rounded-2xl border border-white/12 bg-white/10 p-4">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <TagBadge>{item.triggerLabel}</TagBadge>
+                    <TagBadge>{item.affectedArea}</TagBadge>
+                    <TagBadge>{item.scoreDelta > 0 ? "+" : ""}{item.scoreDelta}</TagBadge>
+                  </div>
+                  <p>{item.reason}</p>
+                  <p className="mt-2 text-white">{item.safeWarning}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {result.funnelAnalysis.ziweiStarNaming.exampleChars.map((char) => (
+                <TagBadge key={char}>{char}</TagBadge>
+              ))}
+            </div>
+            <p className="text-xs leading-6 text-warmGray">{result.funnelAnalysis.ziweiStarNaming.cta}</p>
           </div>
         </ResultCard>
 
@@ -324,10 +493,21 @@ export default function ResultPage() {
 
         <ResultCard title="你的名字还有更深一层没有被打开">
           <p className="text-sm leading-7 text-warmGray">
-            AI 基础分析仅能揭示表层信息。名字的五行生克是否真正契合你的八字命理，当前的财运漏口、感情沟通卡点或事业贵人问题，仍需要 Master Easy 结合完整命盘进一步确认。
+            想要了解如何缝合财库漏口、稳住情缘宫位或放大事业品牌磁场，免费版只能先指出表层卡点。完整 15 页深度解析会进一步拆解你的命宫、迁移宫、三才时间轴、生肖字根与流年提醒，再由 Master Easy / 易玺师傅做一对一确认。
           </p>
-          <WhatsAppButton message={result.whatsappMessages["整体"]}>点击获取完整版 15 页深度解析报告 & 预约易玺师傅一对一专业测名</WhatsAppButton>
+          <div className="my-4 rounded-2xl border border-white/12 bg-white/10 p-4 text-xs leading-6 text-warmGray">
+            <p><span className="font-semibold text-gold">系统判定优先切入：</span>{result.funnelAnalysis.conversionTags.primaryPain}</p>
+            <p><span className="font-semibold text-gold">自动标签：</span>{result.funnelAnalysis.conversionTags.tags.join("、")}</p>
+            <p className="mt-2 text-white">{result.funnelAnalysis.conversionTags.whatsappIntent}</p>
+          </div>
+          <WhatsAppButton message={result.funnelAnalysis.reportOffers.paid.whatsappMessage}>获取专属 15 页深度解析，并预约 Master Easy 一对一测名</WhatsAppButton>
           <LeadCapture />
+        </ResultCard>
+
+        <ResultCard title="稍后让老师联系你" subtle>
+          <div className="space-y-2 text-xs leading-6 text-warmGray">
+            <p>{result.funnelAnalysis.leadRecovery.text}</p>
+          </div>
         </ResultCard>
 
         <ResultCard title="免责声明" subtle>
@@ -354,4 +534,16 @@ function ListBlock({ title, items }: { title: string; items: string[] }) {
       </div>
     </div>
   );
+}
+
+function formatPainTitle(title: AnalysisResult["painPoints"][number]["title"]): string {
+  if (title.startsWith("名")) return "名｜事业品牌与社会声望";
+  if (title.startsWith("情")) return "情｜亲密关系与高价值人际网";
+  return "财｜正偏财流转与财库守卫";
+}
+
+function trafficLight(riskLevel: AnalysisResult["painPoints"][number]["riskLevel"]): { dot: string; label: string } {
+  if (riskLevel === "需老师确认") return { dot: "红灯", label: "高敏感区域｜建议老师细看" };
+  if (riskLevel === "需留意") return { dot: "黄灯", label: "中度提醒｜需要进一步确认" };
+  return { dot: "绿灯", label: "初步平稳｜仍需看完整命盘" };
 }

@@ -3,6 +3,7 @@ export type Gender = "男" | "女" | "不透露" | "";
 export type Focus = "家庭" | "事业" | "爱情" | "财运" | "改名" | "整体" | "";
 export type CalendarType = "solar" | "lunar";
 export type BirthTimeStatus = "exact" | "approximate" | "unknown";
+export type ReportTier = "free" | "paid";
 
 export interface NameAnalysisInput {
   name: string;
@@ -18,6 +19,7 @@ export interface NameAnalysisInput {
   useTrueSolarTime?: boolean;
   birthTimeStatus?: BirthTimeStatus;
   approximateBirthTime?: "早上" | "下午" | "晚上" | "";
+  reportTier?: ReportTier;
 }
 
 export interface CharacterAnalysis {
@@ -116,6 +118,127 @@ export interface ProfessionalReview {
   authorityNote: string;
 }
 
+export interface EnergyRadarPoint {
+  element: ElementName;
+  score: number;
+  label: string;
+}
+
+export interface AnnualWarning {
+  year: number;
+  stemBranch: string;
+  zodiac: string;
+  title: string;
+  text: string;
+  urgency: "低" | "中" | "高";
+}
+
+export interface AuthorityCaseProof {
+  caseId: string;
+  painType: "事业" | "感情" | "财运" | "整体";
+  title: string;
+  text: string;
+  ctaAngle: string;
+}
+
+export interface SharePosterInsight {
+  headline: string;
+  scoreLine: string;
+  quote: string;
+  qrPayload: string;
+  visualStyle: string;
+}
+
+export interface ConversionTags {
+  primaryPain: "事业" | "感情" | "财运" | "整体";
+  lowestPainScore: number;
+  tags: string[];
+  whatsappIntent: string;
+}
+
+export interface PartnerCompatibilityTeaser {
+  enabled: boolean;
+  title: string;
+  text: string;
+}
+
+export interface LeadRecoveryPlan {
+  enabled: boolean;
+  trigger: "partial_form" | "result_view" | "whatsapp_click";
+  localStorageKey: string;
+  text: string;
+}
+
+export interface ReportProductOffer {
+  tier: ReportTier;
+  title: string;
+  pageCount: string;
+  priceLabel: string;
+  goal: string;
+  includes: string[];
+  lockedTeasers: string[];
+  cta: string;
+  whatsappMessage: string;
+}
+
+export interface ViralUnlockOffer {
+  title: string;
+  subtitle: string;
+  lockedModules: string[];
+  facebookShareText: string;
+  shareUrl: string;
+  unlockCode: string;
+  storageKey: string;
+  whatsappMessage: string;
+}
+
+export interface ZiweiStarNamingInsight {
+  lifeStar: string;
+  migrationStar: string;
+  lifeArchetype: string;
+  migrationArchetype: string;
+  nameDirection: string;
+  personalBrandDirection: string;
+  mismatchWarning: string;
+  exampleChars: string[];
+  crossChecks: Array<{
+    triggerLabel: string;
+    affectedArea: "事业" | "感情" | "财运" | "个人品牌" | "整体";
+    scoreDelta: number;
+    reason: string;
+    safeWarning: string;
+    ctaAngle: string;
+  }>;
+  cta: string;
+}
+
+export interface FunnelAnalysis {
+  featureFlags: Record<
+    "partnerTest" | "sharePoster" | "energyRadar" | "annualWarning" | "authorityProof" | "leadTagging" | "leadRecovery",
+    boolean
+  >;
+  energyRadar: {
+    points: EnergyRadarPoint[];
+    weakestElement: ElementName;
+    strongestElement: ElementName;
+    insight: string;
+  };
+  annualWarning: AnnualWarning;
+  authorityProof: AuthorityCaseProof;
+  sharePoster: SharePosterInsight;
+  ziweiStarNaming: ZiweiStarNamingInsight;
+  conversionTags: ConversionTags;
+  reportOffers: {
+    selectedTier: ReportTier;
+    free: ReportProductOffer;
+    paid: ReportProductOffer;
+    upgradeReason: string;
+  };
+  viralUnlock: ViralUnlockOffer;
+  partnerCompatibility: PartnerCompatibilityTeaser;
+  leadRecovery: LeadRecoveryPlan;
+}
+
 export type WhatsappSection = "家庭" | "事业" | "爱情" | "整体";
 
 export interface FiveGridItem {
@@ -204,6 +327,7 @@ export interface AnalysisResult {
   scoreHook: ScoreHook;
   teacherConclusion: TeacherConclusion;
   dataConfidence: DataConfidence;
+  funnelAnalysis: FunnelAnalysis;
   timeline: NameTimelineItem[];
   painPoints: PainPointReport[];
   professionalReview: ProfessionalReview;

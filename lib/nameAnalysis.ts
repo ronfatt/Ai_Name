@@ -1,6 +1,7 @@
 import type {
   AnalysisResult,
   CharacterAnalysis,
+  ConversionTags,
   DataConfidence,
   ElementName,
   NameAnalysisInput,
@@ -15,6 +16,7 @@ import type {
   ZodiacNameAnalysis
 } from "@/types/analysis";
 import { buildMetaphysicsProfile } from "@/lib/metaphysicsEngine";
+import { buildLeadFunnelAnalysis } from "@/lib/funnel/leadFunnelEngine";
 
 const elements: ElementName[] = ["木", "火", "土", "金", "水"];
 
@@ -705,7 +707,8 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
     calendarType: input.calendarType || "solar",
     useTrueSolarTime: Boolean(input.useTrueSolarTime),
     birthTimeStatus: input.birthTimeStatus || "exact",
-    approximateBirthTime: input.approximateBirthTime || ""
+    approximateBirthTime: input.approximateBirthTime || "",
+    reportTier: input.reportTier || "free"
   };
   const characters = analyzeCharacters(normalizedInput.name);
   const dominant = getDominantElement(characters);
@@ -738,7 +741,7 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
     "生肖姓名学看到的字根关系，是否和紫微核心宫位互相印证"
   ];
 
-  return {
+  const baseAnalysis = {
     userInput: normalizedInput,
     score,
     patternName,
@@ -770,6 +773,29 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
     deeperQuestions: confirmations,
     whatsappMessages: buildWhatsappMessages(normalizedInput, score)
   };
+
+  const funnelAnalysis = buildLeadFunnelAnalysis(baseAnalysis);
+
+  return {
+    ...baseAnalysis,
+    funnelAnalysis,
+    whatsappMessages: enhanceWhatsappMessages(baseAnalysis.whatsappMessages, funnelAnalysis.conversionTags)
+  };
+}
+
+function enhanceWhatsappMessages(messages: Record<WhatsappSection, string>, conversionTags: ConversionTags): Record<WhatsappSection, string> {
+  const suffix = [
+    "",
+    `系统自动标签：${conversionTags.tags.join("、")}`,
+    conversionTags.whatsappIntent
+  ].join("\n");
+
+  return {
+    家庭: `${messages.家庭}${suffix}`,
+    事业: `${messages.事业}${suffix}`,
+    爱情: `${messages.爱情}${suffix}`,
+    整体: `${messages.整体}${suffix}`
+  };
 }
 
 function buildScoreHook(score: number): ScoreHook {
@@ -786,25 +812,25 @@ function buildNameTimeline(characters: CharacterAnalysis[]): NameTimelineItem[] 
 
   return [
     {
-      title: "姓氏根基",
+      title: "先天格局与原生磁场",
       ageRange: "1-20岁",
       char: first.char,
-      focus: "祖业 / 原生家庭 / 长辈缘",
-      text: `姓氏「${first.char}」先看早年家庭底色。它带${first.element}气，比较像你从家庭系统里带出来的习惯、期待和安全感模式。`
+      focus: "长辈缘 / 原生家庭 / 学习底色",
+      text: `姓氏「${first.char}」先看先天格局与原生磁场。它带${first.element}气，比较像你从家庭系统里带出来的资源、长辈缘和早年学习力；这一段不急着下重判断，只当作姓名底盘来看。`
     },
     {
-      title: "名一主运",
+      title: "黄金搏杀期与情缘建构",
       ageRange: "21-40岁",
       char: second.char,
-      focus: "事业拼搏 / 婚姻感情 / 当前压力",
-      text: `名字第一字「${second.char}」最容易对应事业拼搏、感情选择和对外表现。这个字如果和命宫、官禄宫有拉扯，就容易出现怀才不遇、关系沟通不顺或努力感偏重的阶段。`
+      focus: "事业冲刺 / 情缘选择 / 社会声望",
+      text: `名字第一字「${second.char}」定夺 21-40 岁的社会冲刺力，也是多数人最有感的阶段。若它和命宫、官禄宫有克滞，比较像很努力却总差一点：职场上容易出现将帅无兵、贵人不稳，感情上也容易陷入沟通内耗或不适合的关系牵扯。`
     },
     {
-      title: "名二后劲",
+      title: "财富收成与晚年财库",
       ageRange: "41岁以后",
       char: third.char,
-      focus: "财富累积 / 子息缘 / 晚年稳定",
-      text: `名字后段「${third.char}」看中后期的财富、关系和后劲。若前一阶段的问题没有被整理，后期可能比较像有成果但守得辛苦，需要进一步看总格和财帛宫。`
+      focus: "财富沉淀 / 子息缘 / 下半场稳定",
+      text: `名字后段「${third.char}」主管下半场的财富收成与财库守卫。若字形有漏口、五行冲克或与生肖不合，初步看会像前半生有机会、有风光，但中年后守财、合伙、投资节奏或家庭责任需要特别细看。`
     }
   ];
 }
@@ -825,22 +851,22 @@ function buildPainPoints(
       title: "名：事业与贵人",
       score: clampPainScore(score + (businessRule?.scoreDelta ?? 0) / 3),
       riskLevel: (businessRule?.scoreDelta ?? 0) < 0 ? "需老师确认" : "需留意",
-      text: `${businessRule?.text ?? "事业宫位需要结合姓名人格进一步确认。"} 这类组合初步看，可能不是没有能力，而是机会、贵人或表达节奏没有完全对上。`,
-      withheldHint: "事业真正卡在方向、贵人还是名字能量，需要结合完整命盘继续拆。"
+      text: `${businessRule?.text ?? "事业宫位需要结合姓名人格进一步确认。"} 这里看的不是单纯事业好不好，而是你的名字有没有领导者磁场、专业背书感和社会声望。若名字气场偏弱或过俗，初步看会削弱第一印象含金量，跑业务、谈合作或带团队时容易感觉气场被压住。`,
+      withheldHint: "事业品牌真正卡在贵人、定位、声望还是名字气场，需要结合命宫、官禄宫和完整姓名继续拆。"
     },
     {
       title: "情：感情与婚姻",
       score: clampPainScore(score + (relationRule?.scoreDelta ?? 0) / 3 - (input.gender === "女" ? 1 : 0)),
       riskLevel: (relationRule?.scoreDelta ?? 0) < 0 || hasGenderSensitiveShape(input.gender, characters) ? "需老师确认" : "需留意",
-      text: `${relationRule?.text ?? "感情需要看命宫、迁移宫和姓名人格之间的互动。"} 名字里若带过强的孤立、克制或不易表达之象，感情上比较容易出现想很多、忍很多或沟通卡住的情况。`,
-      withheldHint: "是否属于男女忌用字或感情宫位冲克，需老师结合性别和完整姓名进一步判断。"
+      text: `${relationRule?.text ?? "感情需要看命宫、迁移宫和姓名人格之间的互动。"} 情缘宫不只看夫妻或恋爱，也看高价值人际和商业合伙。若名字里带过强的孤立、克制或不易表达之象，亲密关系容易沟通内耗，合作关系也容易出现信任落差或利益边界不清。`,
+      withheldHint: "是否属于男女忌用字、情缘宫受克或高价值人际错位，需老师结合性别和完整姓名进一步判断。"
     },
     {
       title: "财：财富与守财",
       score: clampPainScore(score + (wealthRule?.scoreDelta ?? 0) / 3 - (hasConflictRoot ? 3 : 0)),
       riskLevel: (wealthRule?.scoreDelta ?? 0) < 0 || hasConflictRoot ? "需老师确认" : "平稳",
-      text: `${wealthRule?.text ?? "财帛宫需要和总格一起看。"} 若生肖字根或姓名结构有暗耗，初步会像收入有机会，但守财、累积或长期稳定仍需细看。`,
-      withheldHint: "财运漏口不能只看一个字，需要把财帛宫、总格、生肖冲合一起判断。"
+      text: `${wealthRule?.text ?? "财帛宫需要和总格一起看。"} 财库不是只看能不能赚钱，还要看能不能守住。若生肖字根或姓名结构有暗耗，初步会像有正偏财机会，但钱容易左手进右手出，成为过路财神，守财、累积和长期稳定仍需细看。`,
+      withheldHint: "系统检测到财库守卫仍有一处需要深拆的节点；完整内容会在 15 页深度报告里展开。"
     }
   ];
 }
@@ -851,13 +877,15 @@ function buildProfessionalReview(input: NameAnalysisInput, characters: Character
 
   return {
     rareCharacter: hasRare
-      ? "名字里可能含有较少见或系统难拆的字，人际流通、文件识别和口头介绍都需要进一步确认。"
-      : "名字用字流通度初步平稳，没有明显生僻到难以辨识的结构。",
-    pronunciation: "字音初步读起来没有明显断裂感，但是否有方言谐音、行业场景误读，仍建议由老师人工复核。",
-    meaning: "字义能量偏向责任、表达与后期累积；若长期处在压力环境，名字可能会放大承担感。",
+      ? "名字里可能含有较少见或系统难拆的字。名字是个人品牌的超级符号，每次别人念错、写错或不敢确认，都会让人际流通变慢，贵人识别度需要进一步确认。"
+      : "名字用字流通度初步平稳，没有明显生僻到难以辨识的结构；但是否有方言谐音或行业场景误读，仍建议人工复核。",
+    pronunciation: "字音初步没有明显断裂感。姓名学里，拗口或谐音不佳会形成气运阻滞，影响别人记住你、介绍你、信任你的速度。",
+    meaning: input.gender === "女" && characters.some((character) => ["强", "伟", "冠", "剛", "刚"].some((part) => character.char.includes(part)))
+      ? "名字里带较阳刚的字形，事业上容易展现女强人特质，但也要留意阴阳能量错位，现实中可能比较像很多责任都要自己扛。"
+      : "字义能量偏向责任、表达与后期累积；若长期处在压力环境，名字可能会放大承担感，也会形成持续性的心理暗示。",
     shape: repeatedElement
-      ? `字形五行以${dominant}气偏明显，优点是方向集中，提醒是容易某一类能量过重。`
-      : "字形五行有一定变化，需看是否真正补到八字喜用和紫微核心宫位。",
+      ? `字形五行以${dominant}气偏明显，优点是方向集中，提醒是容易某一类能量过重。若下盘不稳、外开或漏口较多，还要进一步看基业和财库是否容易外散。`
+      : "字形五行有一定变化，需要看是否真正补到八字喜用和紫微核心宫位；拆字法不只看表面意思，也看下盘、开口、收束和生肖刑冲。",
     authorityNote: "紫微易名学不是只算笔画，而是把姓名五格、生肖字根、命宫主星、迁移宫人际、官禄财帛走势一起做交叉判断。"
   };
 }

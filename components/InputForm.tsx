@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { validateChineseName } from "@/lib/nameAnalysis";
 import { generateAnalysis } from "@/lib/report/generateAnalysis";
-import type { BirthTimeStatus, Focus, Gender } from "@/types/analysis";
+import type { BirthTimeStatus, Focus, Gender, ReportTier } from "@/types/analysis";
 import { LoadingAnalysis } from "@/components/LoadingAnalysis";
 
 const zodiacs = ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"];
@@ -25,6 +25,7 @@ export function InputForm() {
   const [birthCity, setBirthCity] = useState("");
   const [longitude, setLongitude] = useState("");
   const [useTrueSolarTime, setUseTrueSolarTime] = useState(true);
+  const [reportTier, setReportTier] = useState<ReportTier>("free");
   const [showAdvancedBirth, setShowAdvancedBirth] = useState(false);
   const [error, setError] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -84,7 +85,8 @@ export function InputForm() {
       birthCity,
       longitude: longitude ? Number(longitude) : undefined,
       calendarType,
-      useTrueSolarTime
+      useTrueSolarTime,
+      reportTier
     });
 
     const minimumLoading = new Promise((resolve) => window.setTimeout(resolve, 4300));
@@ -112,7 +114,8 @@ export function InputForm() {
             birthCity,
             longitude: longitude ? Number(longitude) : undefined,
             calendarType,
-            useTrueSolarTime
+            useTrueSolarTime,
+            reportTier
           },
           localAnalysis: localResult
         })
@@ -219,6 +222,9 @@ export function InputForm() {
         </label>
         <label className="block border-b border-white/10 px-4 py-3">
           <span className="mb-2 block text-xs font-semibold text-warmGray">出生时间</span>
+          <p className="mb-3 text-xs leading-5 text-warmGray">
+            紫微斗数需要时辰定位命宫与迁移宫；若不确定，也可以先选择“不确定出生时间”，系统会降级初排并提醒老师后续校时。
+          </p>
           <div className="mb-3 flex flex-wrap gap-2">
             {([
               ["exact", "准确时间"],
@@ -346,6 +352,51 @@ export function InputForm() {
             ))}
           </div>
         </label>
+      </div>
+
+      <div className="ziwei-panel">
+        <div className="ziwei-panel-header">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-white"><span className="text-[#A77BFF]">✦</span>4 选择报告端口</h2>
+          <p className="mt-2 text-xs leading-5 text-warmGray">
+            免费版先看最关键的姓名卡点；完整报告会进一步拆解紫微主星、三才时间轴、生肖字根、字音字形与流年提醒。
+          </p>
+        </div>
+        <div className="grid gap-3 px-4 py-4">
+          {([
+            {
+              tier: "free",
+              title: "免费版基础检测",
+              meta: "约 3-5 页｜免费",
+              desc: "适合先看姓名分数、最低痛点和老师初步提醒。"
+            },
+            {
+              tier: "paid",
+              title: "15页完整深度报告",
+              meta: "早鸟价 RM XX｜WhatsApp 下单",
+              desc: "适合想看紫微命宫、迁移宫、三才五格、流年与付费 PDF 的用户。"
+            }
+          ] as const).map((item) => (
+            <button
+              key={item.tier}
+              type="button"
+              onClick={() => setReportTier(item.tier)}
+              className={`rounded-3xl border p-4 text-left transition active:scale-[0.99] ${
+                reportTier === item.tier
+                  ? "border-[#FF67D8]/70 bg-[#6423D2]/28 shadow-[0_0_28px_rgba(255,103,216,0.2)]"
+                  : "border-white/12 bg-white/8"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-base font-semibold text-white">{item.title}</p>
+                  <p className="mt-1 text-xs font-semibold text-gold">{item.meta}</p>
+                </div>
+                <span className={`mt-1 h-5 w-5 rounded-full border ${reportTier === item.tier ? "border-[#FF67D8] bg-[#FF67D8]" : "border-white/30"}`} />
+              </div>
+              <p className="mt-3 text-xs leading-6 text-warmGray">{item.desc}</p>
+            </button>
+          ))}
+        </div>
       </div>
 
       {error ? (
