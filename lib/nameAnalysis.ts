@@ -1,5 +1,6 @@
 import type {
   AnalysisResult,
+  BaguaNameAnalysis,
   CharacterAnalysis,
   ConversionTags,
   DataConfidence,
@@ -17,6 +18,7 @@ import type {
 } from "@/types/analysis";
 import { buildMetaphysicsProfile } from "@/lib/metaphysicsEngine";
 import { buildLeadFunnelAnalysis } from "@/lib/funnel/leadFunnelEngine";
+import { baguaNameRecords, houtianNumberToBagua } from "@/lib/database/baguaNameDatabase";
 
 const elements: ElementName[] = ["木", "火", "土", "金", "水"];
 
@@ -722,6 +724,7 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
   const timeline = buildNameTimeline(characters);
   const painPoints = buildPainPoints(normalizedInput, characters, metaphysics, score);
   const professionalReview = buildProfessionalReview(normalizedInput, characters, dominant);
+  const baguaName = buildBaguaNameAnalysis(characters);
 
   const strengths = [
     dominant === "水" ? "感受力细腻，能察觉别人没说出口的情绪" : "责任感较强，遇到事情愿意先想办法承担",
@@ -751,9 +754,10 @@ export function analyzeName(input: NameAnalysisInput): AnalysisResult {
     timeline,
     painPoints,
     professionalReview,
+    baguaName,
     overall: {
       opening:
-        "我先温和地跟你说，名字不是简单分成好或不好。新版会先以紫微斗数的命宫、迁移宫、官禄宫、财帛宫作为主轴，再用姓名五格去看名字是否补到你的命盘需要。生肖姓名学仍会保留，但它现在是辅助参考，不会单独决定结论。",
+        `我先温和地跟你说，名字不是简单分成好或不好。新版会先以紫微斗数的命宫、迁移宫、官禄宫、财帛宫作为主轴，再用姓名五格去看名字是否补到你的命盘需要。生肖姓名学和姓名卦象也会保留为辅助参考；这次卦象主气偏「${baguaName.dominantGua}」，不会单独决定结论，但能帮助老师看字形与人生阶段的气口。`,
       strengths,
       resistances,
       confirmations
@@ -888,6 +892,66 @@ function buildProfessionalReview(input: NameAnalysisInput, characters: Character
       : "字形五行有一定变化，需要看是否真正补到八字喜用和紫微核心宫位；拆字法不只看表面意思，也看下盘、开口、收束和生肖刑冲。",
     authorityNote: "紫微易名学不是只算笔画，而是把姓名五格、生肖字根、命宫主星、迁移宫人际、官禄财帛走势一起做交叉判断。"
   };
+}
+
+function buildBaguaNameAnalysis(characters: CharacterAnalysis[]): BaguaNameAnalysis {
+  const readings = characters.map((character) => {
+    const numberQi = reduceToNine(character.strokes);
+    const guaKey = houtianNumberToBagua[numberQi];
+    const record = baguaNameRecords[guaKey];
+
+    return {
+      char: character.char,
+      position: character.position,
+      strokes: character.strokes,
+      numberQi,
+      gua: record.gua,
+      image: record.image,
+      element: record.element,
+      lifeStageTone: record.lifeStageTone,
+      strengths: record.positiveTags.slice(0, 3),
+      cautions: record.cautionTags.slice(0, 3),
+      careerHint: record.careerImage,
+      relationshipHint: record.relationshipImage,
+      wealthHint: record.wealthImage,
+      safeSummary: `${character.position}「${character.char}」以康熙 ${character.strokes} 画取后天数气为 ${numberQi}，归入「${record.image}」。${record.safePublicTone}`
+    };
+  });
+
+  const dominantGua = getDominantBagua(readings);
+  const dominantRecord = baguaNameRecords[dominantGua];
+
+  return {
+    method: "以康熙笔画取 1-9 后天数气，再对应坎一、坤二、震三、巽四、中五、乾六、兑七、艮八、离九。此为姓名卦象辅助层，用来补充字义、五行、紫微宫位与生肖字根的交叉判断。",
+    dominantGua: dominantRecord.gua,
+    dominantElement: dominantRecord.element,
+    dominantTone: dominantRecord.safePublicTone,
+    sequence: readings.map((item) => `${item.char}:${item.gua}${item.numberQi}`).join(" → "),
+    summary: `从姓名卦象看，这个名字的主象偏「${dominantRecord.image}」，带有${dominantRecord.coreNature}的气息。它可以补充解释你在事业、人际、感情和财库上的表现方式，但仍需和紫微命宫、迁移宫、官禄宫、财帛宫一起确认，不单独下结论。`,
+    characterReadings: readings,
+    confirmations: [
+      "姓名卦象是否和人格五行同向，还是出现一边想动、一边被挡的拉扯。",
+      "名一的卦象是否对应 21-40 岁事业与感情的真实体感。",
+      "名二的卦象是否支持 41 岁后的财富沉淀和下半场稳定。"
+    ]
+  };
+}
+
+function reduceToNine(value: number): number {
+  const remainder = value % 9;
+  return remainder === 0 ? 9 : remainder;
+}
+
+function getDominantBagua(readings: BaguaNameAnalysis["characterReadings"]): keyof typeof baguaNameRecords {
+  const weighted = new Map<keyof typeof baguaNameRecords, number>();
+
+  readings.forEach((reading, index) => {
+    const weight = index === 1 ? 3 : index === 2 ? 2 : 1;
+    const key = reading.gua as keyof typeof baguaNameRecords;
+    weighted.set(key, (weighted.get(key) ?? 0) + weight);
+  });
+
+  return [...weighted.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "中";
 }
 
 function clampPainScore(value: number): number {

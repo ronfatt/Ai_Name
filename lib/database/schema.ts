@@ -159,3 +159,31 @@ export interface ViralUnlockRuleRecord {
   facebookTextTemplates: string[];
   whatsappIntent: string;
 }
+
+export type BaguaNameKey = "坎" | "坤" | "震" | "巽" | "中" | "乾" | "兑" | "艮" | "离";
+
+export interface BaguaNameRecord {
+  gua: BaguaNameKey;
+  image: string;
+  element: ElementName;
+  yinYang: "阳" | "阴" | "中";
+  xiantianNumber?: number;
+  houtianNumber: number;
+  direction: string;
+  season?: string;
+  coreNature: string;
+  personalityKeywords: string[];
+  formKeywords: string[];
+  placeKeywords: string[];
+  peopleKeywords: string[];
+  objectKeywords: string[];
+  colorKeywords: string[];
+  positiveTags: string[];
+  cautionTags: string[];
+  careerImage: string;
+  relationshipImage: string;
+  wealthImage: string;
+  lifeStageTone: string;
+  safePublicTone: string;
+  internalNotes: string;
+}

@@ -41,11 +41,42 @@ NEXT_PUBLIC_WHATSAPP_NUMBER=60193153065
 
 ```bash
 OPENAI_API_KEY=replace_with_your_openai_key
+OPENAI_MODEL=gpt-4o-mini
 ```
 
 系统会先用本地规则引擎生成姓名结构、五行、笔画、分数与报告基础内容，再调用 `/api/generate-report` 让 OpenAI 润色文案。AI 只负责把本地规则引擎输出写得更像真人老师，不会改变分数、格局、五行、笔画或姓名拆字结果。
 
 如果没有 `OPENAI_API_KEY`，或 OpenAI 请求失败，系统会自动使用本地模板报告。
+
+## Admin 后台与数据记录
+
+后台入口不会显示在前端导航：
+
+```bash
+/admin?key=your-admin-access-key
+```
+
+建议在 `.env.local` 或 Vercel Project Settings 设置：
+
+```bash
+ADMIN_ACCESS_KEY=choose-a-long-private-key
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+ADMIN_OPENAI_INPUT_USD_PER_1M=0.15
+ADMIN_OPENAI_OUTPUT_USD_PER_1M=0.6
+```
+
+第一版后台会记录：
+
+- 表单提交
+- 报告生成次数
+- OpenAI 或本地 fallback 来源
+- OpenAI token 用量与估算成本
+- WhatsApp CTA 点击
+- 用户可选 WhatsApp 留资
+- 免费版 / 付费版报告意向
+
+启用 Supabase 前，请先在 Supabase SQL Editor 执行 [docs/supabase-admin-schema.sql](/Users/rms/Desktop/Ai%20Project/Ai_Name/docs/supabase-admin-schema.sql)。如果没有设置 Supabase 环境变量，前端仍然可以正常使用，只是后台会显示尚未连接数据层。
 
 ## 代码结构
 
@@ -54,6 +85,8 @@ app/
   page.tsx
   analysis/page.tsx
   result/page.tsx
+  admin/page.tsx
+  api/track/route.ts
   api/generate-report/route.ts
 components/
   AppShell.tsx
@@ -65,6 +98,8 @@ components/
   ScoreCard.tsx
   WhatsAppButton.tsx
 lib/
+  admin/
+    tracking.ts
   astro/
     lunarAdapter.ts
     timeCalibration.ts
@@ -97,6 +132,7 @@ types/
 - `lib/database/schema.ts` 定义姓名字典、生肖字根、紫微星曜、十神、冲突检测与商业漏斗资料表结构
 - `lib/database/funnelDatabase.ts` 存放裂变、雷达图、流年提醒、案例证明、WhatsApp 标签与弃单挽回规则
 - `lib/database/ziweiStarNaming.ts` 存放 14 主星的定名气质矩阵，用命宫看内在气质、迁移宫看个人品牌形象
+- `lib/database/baguaNameDatabase.ts` 整理“金钥匙姓名学”八卦卦象取象资料，将坎、坤、震、巽、中、乾、兑、艮、离转成可读取的数气、五行、性情、事业、人际、财库与温和提醒文案
 - `lib/funnel/leadFunnelEngine.ts` 根据报告结果生成 `funnelAnalysis`，供结果页和 WhatsApp CTA 使用
 
 这套结构的目标是让“命理判断”和“成交漏斗”都数据化。后续若接后台，可直接把这些 records 拆成 Supabase tables，例如 `funnel_features`、`energy_radar_rules`、`authority_cases`、`conversion_tag_rules`、`lead_recovery_rules`。
@@ -106,6 +142,8 @@ types/
 - `Blueprint`：主星磁场与命名方向，例如紫微/天府归为帝王领导型，七杀/破军归为开创突破型
 - `Pain Point`：主星气质与现用名错位时的温和痛点提醒
 - `Ruleset`：主星类型 × 姓名位置 × 五行/字义标签的交叉验证规则，用于形成双重扣分与 WhatsApp 咨询角度
+
+姓名卦象辅助层采用后天数气映射：康熙笔画取 1-9 后，对应坎一、坤二、震三、巽四、中五、乾六、兑七、艮八、离九。它只作为字形、人生阶段和能量取象的辅助层，不替代紫微命盘、五格、生肖字根或真人老师判断。PDF 原始资料中较重的疾病、灾难等词只保留为内部禁用敏感标签，前端报告不直接输出恐吓性内容。
 
 出生时辰采用“准确优先、可降级初排”的漏斗策略：用户知道准确时间时可提升命宫和迁移宫判断；不知道时辰时系统以中午初排，并在报告里标记“需老师校时”，避免表单过硬导致潜在客户流失。
 

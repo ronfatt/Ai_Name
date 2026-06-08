@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { estimateOpenAiCost, trackReportGeneration, type AiUsagePayload } from "@/lib/admin/tracking";
 import { generateAnalysis } from "@/lib/report/generateAnalysis";
 import type { AnalysisResult, NameAnalysisInput, SectionReport, ZodiacNameAnalysis } from "@/types/analysis";
 
@@ -48,6 +49,11 @@ interface AiReportPatch {
   pastTrace: string;
   summary: string;
   deeperQuestions: string[];
+}
+
+interface AiReportResult {
+  patch: AiReportPatch;
+  usage: AiUsagePayload;
 }
 
 const stringField = {
@@ -132,6 +138,12 @@ export async function POST(request: Request) {
   }
 
   if (!process.env.OPENAI_API_KEY) {
+    await safeTrackReport({
+      analysis: localAnalysis,
+      source: "local",
+      status: "fallback"
+    });
+
     return NextResponse.json({
       source: "local",
       reason: "OPENAI_API_KEY is not configured",
@@ -140,8 +152,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const aiPatch = await generateAiReport(localAnalysis);
-    const analysis = mergeAiPatch(localAnalysis, aiPatch);
+    const aiResult = await generateAiReport(localAnalysis);
+    const analysis = mergeAiPatch(localAnalysis, aiResult.patch);
+
+    await safeTrackReport({
+      analysis,
+      source: "openai",
+      status: "success",
+      usage: aiResult.usage
+    });
 
     return NextResponse.json({
       source: "openai",
@@ -149,6 +168,13 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("OpenAI report generation failed:", error);
+
+    await safeTrackReport({
+      analysis: localAnalysis,
+      source: "local",
+      status: "fallback",
+      errorMessage: error instanceof Error ? error.message : "Unknown OpenAI error"
+    });
 
     return NextResponse.json({
       source: "local",
@@ -173,9 +199,10 @@ function getLocalAnalysis(body: GenerateReportBody): AnalysisResult | null {
   return null;
 }
 
-async function generateAiReport(localAnalysis: AnalysisResult): Promise<AiReportPatch> {
+async function generateAiReport(localAnalysis: AnalysisResult): Promise<AiReportResult> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 18_000);
+  const model = process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL;
 
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -185,7 +212,7 @@ async function generateAiReport(localAnalysis: AnalysisResult): Promise<AiReport
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
+      model,
       input: [
         {
           role: "system",
@@ -224,7 +251,24 @@ async function generateAiReport(localAnalysis: AnalysisResult): Promise<AiReport
     throw new Error("OpenAI JSON did not match expected report shape");
   }
 
-  return parsed;
+  return {
+    patch: parsed,
+    usage: extractUsage(data, localAnalysis, model)
+  };
+}
+
+async function safeTrackReport(params: {
+  analysis: AnalysisResult;
+  source: "openai" | "local";
+  status: "success" | "fallback" | "error";
+  usage?: AiUsagePayload;
+  errorMessage?: string;
+}): Promise<void> {
+  try {
+    await trackReportGeneration(params);
+  } catch (error) {
+    console.error("Admin report tracking failed:", error);
+  }
 }
 
 function buildUserPrompt(localAnalysis: AnalysisResult): string {
@@ -261,6 +305,7 @@ function buildUserPrompt(localAnalysis: AnalysisResult): string {
           keyPalaces: localAnalysis.ziweiChart.keyPalaces
         },
         ziweiNameMatch: localAnalysis.ziweiNameMatch,
+        baguaName: localAnalysis.baguaName,
         funnelAnalysis: {
           energyRadar: localAnalysis.funnelAnalysis?.energyRadar,
           annualWarning: localAnalysis.funnelAnalysis?.annualWarning,
@@ -333,6 +378,37 @@ function extractOutputText(data: unknown): string | null {
   }
 
   return chunks.length > 0 ? chunks.join("") : null;
+}
+
+function extractUsage(data: unknown, localAnalysis: AnalysisResult, model: string): AiUsagePayload {
+  const usage = isRecord(data) && isRecord(data.usage) ? data.usage : {};
+  const inputTokens = readTokenNumber(usage, ["input_tokens", "prompt_tokens"]);
+  const outputTokens = readTokenNumber(usage, ["output_tokens", "completion_tokens"]);
+  const totalTokens = readTokenNumber(usage, ["total_tokens"]) || inputTokens + outputTokens;
+
+  return {
+    leadId: localAnalysis.userInput.trackingId,
+    sessionId: localAnalysis.userInput.sessionId,
+    model,
+    source: "openai",
+    status: "success",
+    inputTokens,
+    outputTokens,
+    totalTokens,
+    estimatedCostUsd: estimateOpenAiCost(inputTokens, outputTokens),
+    metadata: {
+      responseId: isRecord(data) && typeof data.id === "string" ? data.id : undefined
+    }
+  };
+}
+
+function readTokenNumber(source: Record<string, unknown>, keys: string[]): number {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+  }
+
+  return 0;
 }
 
 function isUsableLocalAnalysis(value: AnalysisResult): boolean {

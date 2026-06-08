@@ -6,6 +6,8 @@ export type BirthTimeStatus = "exact" | "approximate" | "unknown";
 export type ReportTier = "free" | "paid";
 
 export interface NameAnalysisInput {
+  trackingId?: string;
+  sessionId?: string;
   name: string;
   scriptType: ScriptType;
   zodiac: string;
@@ -116,6 +118,34 @@ export interface ProfessionalReview {
   meaning: string;
   shape: string;
   authorityNote: string;
+}
+
+export interface BaguaCharacterReading {
+  char: string;
+  position: string;
+  strokes: number;
+  numberQi: number;
+  gua: string;
+  image: string;
+  element: ElementName;
+  lifeStageTone: string;
+  strengths: string[];
+  cautions: string[];
+  careerHint: string;
+  relationshipHint: string;
+  wealthHint: string;
+  safeSummary: string;
+}
+
+export interface BaguaNameAnalysis {
+  method: string;
+  dominantGua: string;
+  dominantElement: ElementName;
+  dominantTone: string;
+  sequence: string;
+  summary: string;
+  characterReadings: BaguaCharacterReading[];
+  confirmations: string[];
 }
 
 export interface EnergyRadarPoint {
@@ -331,6 +361,7 @@ export interface AnalysisResult {
   timeline: NameTimelineItem[];
   painPoints: PainPointReport[];
   professionalReview: ProfessionalReview;
+  baguaName: BaguaNameAnalysis;
   overall: OverallAnalysis;
   characters: CharacterAnalysis[];
   fiveGrid: FiveGridAnalysis;

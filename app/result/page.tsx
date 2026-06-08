@@ -44,6 +44,7 @@ export default function ResultPage() {
           !parsed.scoreHook ||
           !parsed.timeline ||
           !parsed.painPoints ||
+          !parsed.baguaName ||
           !parsed.professionalReview) &&
         parsed.userInput?.name &&
         parsed.userInput?.zodiac
@@ -68,6 +69,7 @@ export default function ResultPage() {
           scoreHook: parsed.scoreHook ?? latest.scoreHook,
           timeline: parsed.timeline ?? latest.timeline,
           painPoints: parsed.painPoints ?? latest.painPoints,
+          baguaName: parsed.baguaName ?? latest.baguaName,
           professionalReview: parsed.professionalReview ?? latest.professionalReview,
           zodiacName: {
             ...latest.zodiacName,
@@ -382,6 +384,35 @@ export default function ResultPage() {
           </div>
         </ResultCard>
 
+        <ResultCard title="姓名卦象辅助分析">
+          <div className="space-y-4 text-sm leading-7 text-warmGray">
+            <div className="flex flex-wrap gap-2">
+              <TagBadge>主象 {result.baguaName.dominantGua}</TagBadge>
+              <TagBadge>主气 {result.baguaName.dominantElement}</TagBadge>
+              <TagBadge>{result.baguaName.sequence}</TagBadge>
+            </div>
+            <p>{result.baguaName.summary}</p>
+            <p className="rounded-2xl border border-white/12 bg-white/10 p-4 text-xs leading-6">{result.baguaName.method}</p>
+            <div className="space-y-3">
+              {result.baguaName.characterReadings.map((item) => (
+                <div key={`${item.char}-${item.position}-bagua`} className="rounded-2xl border border-white/12 bg-white/10 p-4">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <TagBadge>{item.position} {item.char}</TagBadge>
+                    <TagBadge>{item.strokes}画｜{item.image}</TagBadge>
+                    <TagBadge>数气 {item.numberQi}</TagBadge>
+                  </div>
+                  <p className="text-white">{item.safeSummary}</p>
+                  <p className="mt-2"><span className="font-semibold text-gold">事业：</span>{item.careerHint}</p>
+                  <p className="mt-2"><span className="font-semibold text-gold">关系：</span>{item.relationshipHint}</p>
+                  <p className="mt-2"><span className="font-semibold text-gold">财库：</span>{item.wealthHint}</p>
+                  <p className="mt-2 text-xs leading-5">提醒：{item.cautions.slice(0, 2).join("、")}。这只是卦象辅助，不单独断定好坏。</p>
+                </div>
+              ))}
+            </div>
+            <ListBlock title="卦象还需要确认" items={result.baguaName.confirmations} />
+          </div>
+        </ResultCard>
+
         <ResultCard title="生肖与名字的配合（辅助参考）">
           <div className="space-y-4 text-sm leading-7 text-warmGray">
             <div className="flex flex-wrap gap-2">
@@ -484,7 +515,7 @@ export default function ResultPage() {
             <p className="mt-2 text-white">{result.funnelAnalysis.conversionTags.whatsappIntent}</p>
           </div>
           <WhatsAppButton message={result.funnelAnalysis.reportOffers.paid.whatsappMessage}>获取专属 15 页深度解析，并预约 Master Easy 一对一测名</WhatsAppButton>
-          <LeadCapture />
+          <LeadCapture result={result} />
         </ResultCard>
 
         <ResultCard title="稍后让老师联系你" subtle>

@@ -71,15 +71,20 @@ export function InputForm() {
 
     setError("");
     setIsAnalyzing(true);
+    const trackingId = createId("lead");
+    const sessionId = getOrCreateSessionId();
+    const resolvedBirthTime = resolveBirthTime(birthTimeStatus, birthTime, approximateBirthTime);
 
     const localResult = generateAnalysis({
+      trackingId,
+      sessionId,
       name,
       scriptType: analysisScriptType,
       zodiac,
       gender,
       focus,
       birthDate,
-      birthTime: resolveBirthTime(birthTimeStatus, birthTime, approximateBirthTime),
+      birthTime: resolvedBirthTime,
       birthTimeStatus,
       approximateBirthTime,
       birthCity,
@@ -87,6 +92,25 @@ export function InputForm() {
       calendarType,
       useTrueSolarTime,
       reportTier
+    });
+
+    void trackClientEvent({
+      eventType: "form_submit",
+      leadId: trackingId,
+      sessionId,
+      name,
+      zodiac,
+      gender,
+      focus,
+      reportTier,
+      source: "analysis_form",
+      metadata: {
+        birthDate,
+        birthTimeStatus,
+        birthCity,
+        calendarType,
+        useTrueSolarTime
+      }
     });
 
     const minimumLoading = new Promise((resolve) => window.setTimeout(resolve, 4300));
@@ -102,13 +126,15 @@ export function InputForm() {
         },
         body: JSON.stringify({
           input: {
+            trackingId,
+            sessionId,
             name,
             scriptType: analysisScriptType,
             zodiac,
             gender,
             focus,
             birthDate,
-            birthTime: resolveBirthTime(birthTimeStatus, birthTime, approximateBirthTime),
+            birthTime: resolvedBirthTime,
             birthTimeStatus,
             approximateBirthTime,
             birthCity,
@@ -433,4 +459,37 @@ function resolveBirthTime(status: BirthTimeStatus, exactTime: string, approximat
     if (approximate === "晚上") return "21:00";
   }
   return "12:00";
+}
+
+function createId(prefix: string): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `${prefix}_${crypto.randomUUID()}`;
+  }
+
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
+
+function getOrCreateSessionId(): string {
+  const key = "ai-name-analysis:session-id";
+  const existing = window.localStorage.getItem(key);
+  if (existing) return existing;
+
+  const next = createId("session");
+  window.localStorage.setItem(key, next);
+  return next;
+}
+
+async function trackClientEvent(payload: Record<string, unknown>): Promise<void> {
+  try {
+    await fetch("/api/track", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload),
+      keepalive: true
+    });
+  } catch {
+    // Tracking must never block the report flow.
+  }
 }

@@ -1,19 +1,21 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import type { AnalysisResult } from "@/types/analysis";
 
 const leadStorageKey = "ai-name-analysis:lead-whatsapp";
 
-export function LeadCapture() {
+export function LeadCapture({ result }: { result?: AnalysisResult }) {
   const [phone, setPhone] = useState("");
   const [saved, setSaved] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = phone.trim();
     if (!trimmed) return;
 
     window.localStorage.setItem(leadStorageKey, trimmed);
+    await syncLead(trimmed, result);
     setSaved(true);
   }
 
@@ -38,7 +40,38 @@ export function LeadCapture() {
       >
         保存我的 WhatsApp
       </button>
-      {saved ? <p className="mt-3 text-xs leading-5 text-warmGray">已先保存在本机浏览器，之后接数据库时可改为自动同步给老师。</p> : null}
+      {saved ? <p className="mt-3 text-xs leading-5 text-warmGray">已记录。若后台已连接 Supabase，老师后台会看到这条 WhatsApp 留资。</p> : null}
     </form>
   );
+}
+
+async function syncLead(phone: string, result?: AnalysisResult): Promise<void> {
+  try {
+    await fetch("/api/track", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        eventType: "lead_capture",
+        leadId: result?.userInput.trackingId,
+        sessionId: result?.userInput.sessionId,
+        name: result?.userInput.name,
+        phone,
+        zodiac: result?.userInput.zodiac,
+        gender: result?.userInput.gender,
+        focus: result?.userInput.focus,
+        reportTier: result?.userInput.reportTier,
+        score: result?.score,
+        primaryPain: result?.funnelAnalysis.conversionTags.primaryPain,
+        source: "lead_capture_form",
+        metadata: {
+          tags: result?.funnelAnalysis.conversionTags.tags
+        }
+      }),
+      keepalive: true
+    });
+  } catch {
+    // Local save is enough as fallback.
+  }
 }
