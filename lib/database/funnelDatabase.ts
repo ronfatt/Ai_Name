@@ -251,7 +251,7 @@ export const viralUnlockRules: ViralUnlockRuleRecord[] = [
   {
     key: "facebook-pdf-unlock",
     title: "分享解锁免费 PDF 报告",
-    subtitle: "分享你的姓名能量卡至 Facebook，截图发送 WhatsApp，即可领取免费 PDF 初步报告。",
+    subtitle: "分享你的姓名能量卡至 Facebook 或 Instagram，并 tag 官方帐号，截图发送 WhatsApp，即可领取免费 PDF 初步报告。",
     lockedModules: [
       "名运宫：事业品牌与社会声望细节",
       "情缘宫：亲密关系与高价值人际网",
@@ -264,6 +264,6 @@ export const viralUnlockRules: ViralUnlockRuleRecord[] = [
       "测了一下我的名字能量，分数和名、情、财分析有点准。想知道你的名字是助力还是阻力，可以试试看这个免费检测。",
       "名字是命局的外衣。刚用 AI 测了我的姓名能量，发现有一处需要老师细看。"
     ],
-    whatsappIntent: "我已经分享 Facebook 姓名检测贴文，想凭截图领取免费 PDF 初步报告。"
+    whatsappIntent: "我已经分享 Facebook / Instagram 姓名检测贴文，并 tag 官方帐号，想凭截图领取免费 PDF 初步报告。"
   }
 ];

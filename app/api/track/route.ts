@@ -9,7 +9,9 @@ const allowedEvents = new Set([
   "whatsapp_click",
   "lead_capture",
   "paid_preview_unlock",
-  "facebook_share_click"
+  "facebook_share_click",
+  "instagram_share_click",
+  "copy_share_text"
 ]);
 
 export async function POST(request: Request) {

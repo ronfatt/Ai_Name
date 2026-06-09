@@ -6,7 +6,9 @@ export type AdminEventType =
   | "whatsapp_click"
   | "lead_capture"
   | "paid_preview_unlock"
-  | "facebook_share_click";
+  | "facebook_share_click"
+  | "instagram_share_click"
+  | "copy_share_text";
 
 export interface AdminTrackPayload {
   eventType: AdminEventType;

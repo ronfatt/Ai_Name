@@ -65,11 +65,13 @@ function buildViralUnlock(
   const shareUrl = `${siteUrl}?ref=${encodeURIComponent(result.userInput.name)}&pain=${encodeURIComponent(conversionTags.primaryPain)}`;
   const shareText = rule.facebookTextTemplates[result.score % rule.facebookTextTemplates.length];
   const message = [
-    "Master Easy 你好，我已经分享 Facebook 姓名检测贴文。",
+    "Master Easy 你好，我已经分享 Facebook / Instagram 姓名检测贴文。",
     `姓名：${result.userInput.name}`,
     `系统评分：${result.score}/100`,
     `优先痛点：${conversionTags.primaryPain}`,
     `系统标签：${conversionTags.tags.join("、")}`,
+    "Facebook：www.facebook.com/Mastereasyfengshui",
+    "Instagram：@enhancefengshui",
     `暗号：${rule.unlockCode}`,
     rule.whatsappIntent
   ].join("\n");
